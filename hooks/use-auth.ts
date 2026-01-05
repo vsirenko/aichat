@@ -49,7 +49,7 @@ export function useAuth() {
     setIsAuthenticated(true);
     setSessionInfo({
       quotaRemaining: data.quota_remaining,
-      quotaLimit: data.quota_limit,
+      quotaLimit: data.quota,
       expiresAt: data.expires_at,
     });
   }, []);

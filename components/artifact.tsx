@@ -85,6 +85,27 @@ function PureArtifact({
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
+  const [odaiParams, setOdaiParams] = useState({
+    includePhaseEvents: true,
+    skipSafetyCheck: false,
+    skipLlmEnhancement: false,
+    skipLlmJudge: false,
+    maxSamplesPerModel: 3,
+  });
+
+  const handleParametersChange = useCallback(
+    (params: {
+      includePhaseEvents?: boolean;
+      skipSafetyCheck?: boolean;
+      skipLlmEnhancement?: boolean;
+      skipLlmJudge?: boolean;
+      maxSamplesPerModel?: number;
+    }) => {
+      setOdaiParams((prev) => ({ ...prev, ...params }));
+    },
+    []
+  );
+
   const {
     data: documents,
     isLoading: isDocumentsFetching,
@@ -325,14 +346,20 @@ function PureArtifact({
                     attachments={attachments}
                     chatId={chatId}
                     className="bg-background dark:bg-muted"
+                    includePhaseEvents={odaiParams.includePhaseEvents}
                     input={input}
+                    maxSamplesPerModel={odaiParams.maxSamplesPerModel}
                     messages={messages}
+                    onParametersChange={handleParametersChange}
                     selectedModelId={selectedModelId}
                     selectedVisibilityType={selectedVisibilityType}
                     sendMessage={sendMessage}
                     setAttachments={setAttachments}
                     setInput={setInput}
                     setMessages={setMessages}
+                    skipLlmEnhancement={odaiParams.skipLlmEnhancement}
+                    skipLlmJudge={odaiParams.skipLlmJudge}
+                    skipSafetyCheck={odaiParams.skipSafetyCheck}
                     status={status}
                     stop={stop}
                   />

@@ -315,3 +315,14 @@ export const odai = {
   languageModel: (modelId: "odai-frontier" | "odai-fast") =>
     createODAI(modelId),
 };
+
+export const myProvider = {
+  languageModel: (modelId: string) => {
+    // For artifacts, use the frontier model by default
+    if (modelId === "artifact-model") {
+      return createODAI("odai-frontier");
+    }
+    // Fallback to frontier for any other model
+    return createODAI("odai-frontier");
+  },
+};

@@ -146,7 +146,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       event.step === "web_context_refresh" &&
       event.details
     ) {
-      setWebRefreshDetails(event.details as WebContextRefreshDetails);
+      setWebRefreshDetails(event.details as unknown as WebContextRefreshDetails);
     }
 
     setPhases((prev) =>
