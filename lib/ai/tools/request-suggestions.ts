@@ -1,21 +1,24 @@
 import { streamObject, tool, type UIMessageStreamWriter } from "ai";
-import type { Session } from "next-auth";
 import { z } from "zod";
-import { getDocumentById, saveSuggestions } from "@/lib/db/queries";
-import type { Suggestion } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
 import { myProvider } from "../providers";
+import { documentsStore } from "./update-document";
 
 type RequestSuggestionsProps = {
-  session: Session;
   dataStream: UIMessageStreamWriter<ChatMessage>;
 };
 
-export const requestSuggestions = ({
-  session,
-  dataStream,
-}: RequestSuggestionsProps) =>
+type Suggestion = {
+  id: string;
+  documentId: string;
+  originalText: string;
+  suggestedText: string;
+  description: string;
+  isResolved: boolean;
+};
+
+export const requestSuggestions = ({ dataStream }: RequestSuggestionsProps) =>
   tool({
     description: "Request suggestions for a document",
     inputSchema: z.object({
@@ -24,7 +27,7 @@ export const requestSuggestions = ({
         .describe("The ID of the document to request edits"),
     }),
     execute: async ({ documentId }) => {
-      const document = await getDocumentById({ id: documentId });
+      const document = documentsStore.get(documentId);
 
       if (!document || !document.content) {
         return {
@@ -32,10 +35,7 @@ export const requestSuggestions = ({
         };
       }
 
-      const suggestions: Omit<
-        Suggestion,
-        "userId" | "createdAt" | "documentCreatedAt"
-      >[] = [];
+      const suggestions: Suggestion[] = [];
 
       const { elementStream } = streamObject({
         model: myProvider.languageModel("artifact-model"),
@@ -51,7 +51,6 @@ export const requestSuggestions = ({
       });
 
       for await (const element of elementStream) {
-        // @ts-expect-error todo: fix type
         const suggestion: Suggestion = {
           originalText: element.originalSentence,
           suggestedText: element.suggestedSentence,
@@ -68,19 +67,6 @@ export const requestSuggestions = ({
         });
 
         suggestions.push(suggestion);
-      }
-
-      if (session.user?.id) {
-        const userId = session.user.id;
-
-        await saveSuggestions({
-          suggestions: suggestions.map((suggestion) => ({
-            ...suggestion,
-            userId,
-            createdAt: new Date(),
-            documentCreatedAt: document.createdAt,
-          })),
-        });
       }
 
       return {

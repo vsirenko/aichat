@@ -7,7 +7,7 @@ import type {
 import { type ClassValue, clsx } from 'clsx';
 import { formatISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
-import type { DBMessage, Document } from '@/lib/db/schema';
+import type { DBMessage, Document } from '@/lib/types-db';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 
@@ -34,6 +34,10 @@ export async function fetchWithErrorHandlers(
     const response = await fetch(input, init);
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new ChatSDKError('unauthorized:auth', 'Session expired or invalid. Please re-authenticate.');
+      }
+
       const { code, cause } = await response.json();
       throw new ChatSDKError(code as ErrorCode, cause);
     }
@@ -56,7 +60,11 @@ export function getLocalStorage(key: string) {
 }
 
 export function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -94,7 +102,9 @@ export function getTrailingMessageId({
 }
 
 export function sanitizeText(text: string) {
-  return text.replace('<has_function_call>', '');
+      return text
+    .replace('<has_function_call>', '')
+    .replace(/<!--ODAI:[^-]+-->/g, '');
 }
 
 export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {

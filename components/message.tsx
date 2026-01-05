@@ -2,8 +2,8 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import equal from "fast-deep-equal";
 import { memo, useState } from "react";
-import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
+import type { Vote } from "@/lib/types-db";
 import { cn, sanitizeText } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { DocumentToolResult } from "./document";
@@ -117,6 +117,13 @@ const PurePreviewMessage = ({
             }
 
             if (type === "text") {
+              const textContent =
+                part.text || (part as { delta?: string }).delta || "";
+
+              if (!textContent || textContent.trim().length === 0) {
+                return null;
+              }
+
               if (mode === "view") {
                 return (
                   <div key={key}>
@@ -134,7 +141,7 @@ const PurePreviewMessage = ({
                           : undefined
                       }
                     >
-                      <Response>{sanitizeText(part.text)}</Response>
+                      <Response>{sanitizeText(textContent)}</Response>
                     </MessageContent>
                   </div>
                 );

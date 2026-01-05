@@ -17,17 +17,15 @@ import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { useArtifact } from "@/hooks/use-artifact";
-import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
+import type { Document, VisibilityType, Vote } from "@/lib/types-db";
 import { fetcher } from "@/lib/utils";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { ArtifactMessages } from "./artifact-messages";
 import { MultimodalInput } from "./multimodal-input";
 import { Toolbar } from "./toolbar";
-import { useSidebar } from "./ui/sidebar";
 import { VersionFooter } from "./version-footer";
-import type { VisibilityType } from "./visibility-selector";
 
 export const artifactDefinitions = [
   textArtifact,
@@ -101,8 +99,6 @@ function PureArtifact({
   const [mode, setMode] = useState<"edit" | "diff">("edit");
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
-
-  const { open: isSidebarOpen } = useSidebar();
 
   useEffect(() => {
     if (documents && documents.length > 0) {
@@ -229,12 +225,6 @@ function PureArtifact({
 
   const [isToolbarVisible, setIsToolbarVisible] = useState(false);
 
-  /*
-   * NOTE: if there are no documents, or if
-   * the documents are being fetched, then
-   * we mark it as the current version.
-   */
-
   const isCurrentVersion =
     documents && documents.length > 0
       ? currentVersionIndex === documents.length - 1
@@ -275,11 +265,11 @@ function PureArtifact({
               animate={{ width: windowWidth, right: 0 }}
               className="fixed h-dvh bg-background"
               exit={{
-                width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+                width: windowWidth,
                 right: 0,
               }}
               initial={{
-                width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+                width: windowWidth,
                 right: 0,
               }}
             />

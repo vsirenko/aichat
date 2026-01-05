@@ -88,20 +88,20 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
 
     case "unauthorized:auth":
-      return "You need to sign in before continuing.";
+      return "Authentication failed. Please check your ODAI API credentials.";
     case "forbidden:auth":
       return "Your account does not have access to this feature.";
 
     case "rate_limit:chat":
-      return "You have exceeded your maximum number of messages for the day. Please try again later.";
+      return "You have exceeded the rate limit. Please wait a moment and try again.";
     case "not_found:chat":
       return "The requested chat was not found. Please check the chat ID and try again.";
     case "forbidden:chat":
       return "This chat belongs to another user. Please check the chat ID and try again.";
     case "unauthorized:chat":
-      return "You need to sign in to view this chat. Please sign in and try again.";
+      return "Authentication required. Please check your ODAI API credentials.";
     case "offline:chat":
-      return "We're having trouble sending your message. Please check your internet connection and try again.";
+      return "We're having trouble connecting to the ODAI API. Please check your connection and try again.";
 
     case "not_found:document":
       return "The requested document was not found. Please check the document ID and try again.";

@@ -22,9 +22,9 @@ import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { SelectItem } from "@/components/ui/select";
 import { chatModels } from "@/lib/ai/models";
 import type { Attachment, ChatMessage } from "@/lib/types";
+import type { VisibilityType } from "@/lib/types-db";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
-import { Context } from "./elements/context";
 import {
   PromptInput,
   PromptInputModelSelect,
@@ -41,10 +41,10 @@ import {
   PaperclipIcon,
   StopIcon,
 } from "./icons";
+import { OptionsButton } from "./options-button";
 import { PreviewAttachment } from "./preview-attachment";
 import { SuggestedActions } from "./suggested-actions";
 import { Button } from "./ui/button";
-import type { VisibilityType } from "./visibility-selector";
 
 function PureMultimodalInput({
   chatId,
@@ -62,6 +62,12 @@ function PureMultimodalInput({
   selectedModelId,
   onModelChange,
   usage,
+  includePhaseEvents,
+  skipSafetyCheck,
+  skipLlmEnhancement,
+  skipLlmJudge,
+  maxSamplesPerModel,
+  onParametersChange,
 }: {
   chatId: string;
   input: string;
@@ -78,6 +84,18 @@ function PureMultimodalInput({
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
   usage?: AppUsage;
+  includePhaseEvents: boolean;
+  skipSafetyCheck: boolean;
+  skipLlmEnhancement: boolean;
+  skipLlmJudge: boolean;
+  maxSamplesPerModel: number;
+  onParametersChange: (params: {
+    includePhaseEvents?: boolean;
+    skipSafetyCheck?: boolean;
+    skipLlmEnhancement?: boolean;
+    skipLlmJudge?: boolean;
+    maxSamplesPerModel?: number;
+  }) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -108,13 +126,10 @@ function PureMultimodalInput({
   useEffect(() => {
     if (textareaRef.current) {
       const domValue = textareaRef.current.value;
-      // Prefer DOM value over localStorage to handle hydration
       const finalValue = domValue || localStorageInput || "";
       setInput(finalValue);
       adjustHeight();
     }
-    // Only run once after hydration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adjustHeight, localStorageInput, setInput]);
 
   useEffect(() => {
@@ -194,13 +209,6 @@ function PureMultimodalInput({
     }
   }, []);
 
-  const contextProps = useMemo(
-    () => ({
-      usage,
-    }),
-    [usage]
-  );
-
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
@@ -211,7 +219,7 @@ function PureMultimodalInput({
         const uploadPromises = files.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined
+          (attachment): attachment is Attachment => attachment !== undefined
         );
 
         setAttachments((currentAttachments) => [
@@ -242,7 +250,6 @@ function PureMultimodalInput({
         return;
       }
 
-      // Prevent default paste behavior for images
       event.preventDefault();
 
       setUploadQueue((prev) => [...prev, "Pasted image"]);
@@ -275,7 +282,6 @@ function PureMultimodalInput({
     [setAttachments, uploadFile]
   );
 
-  // Add paste event listener to textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) {
@@ -364,15 +370,17 @@ function PureMultimodalInput({
             ref={textareaRef}
             rows={1}
             value={input}
-          />{" "}
-          <Context {...contextProps} />
+          />
         </div>
-        <PromptInputToolbar className="!border-top-0 border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
+        <PromptInputToolbar className="border-top-0! border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
           <PromptInputTools className="gap-0 sm:gap-0.5">
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              selectedModelId={selectedModelId}
-              status={status}
+            <OptionsButton
+              includePhaseEvents={includePhaseEvents}
+              maxSamplesPerModel={maxSamplesPerModel}
+              onParametersChange={onParametersChange}
+              skipLlmEnhancement={skipLlmEnhancement}
+              skipLlmJudge={skipLlmJudge}
+              skipSafetyCheck={skipSafetyCheck}
             />
             <ModelSelectorCompact
               onModelChange={onModelChange}
@@ -414,6 +422,24 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+      return false;
+    }
+    if (prevProps.usage !== nextProps.usage) {
+      return false;
+    }
+    if (prevProps.includePhaseEvents !== nextProps.includePhaseEvents) {
+      return false;
+    }
+    if (prevProps.skipSafetyCheck !== nextProps.skipSafetyCheck) {
+      return false;
+    }
+    if (prevProps.skipLlmEnhancement !== nextProps.skipLlmEnhancement) {
+      return false;
+    }
+    if (prevProps.skipLlmJudge !== nextProps.skipLlmJudge) {
+      return false;
+    }
+    if (prevProps.maxSamplesPerModel !== nextProps.maxSamplesPerModel) {
       return false;
     }
 
@@ -493,7 +519,11 @@ function PureModelSelectorCompact({
       <PromptInputModelSelectContent className="min-w-[260px] p-0">
         <div className="flex flex-col gap-px">
           {chatModels.map((model) => (
-            <SelectItem key={model.id} value={model.name}>
+            <SelectItem
+              disabled={model.id === "odai-fast"}
+              key={model.id}
+              value={model.name}
+            >
               <div className="truncate font-medium text-xs">{model.name}</div>
               <div className="mt-px truncate text-[10px] text-muted-foreground leading-tight">
                 {model.description}

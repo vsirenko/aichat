@@ -3,9 +3,8 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import useSWR, { useSWRConfig } from "swr";
-import { unstable_serialize } from "swr/infinite";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AccessCodeModal } from "@/components/access-code-modal";
 import { ChatHeader } from "@/components/chat-header";
 import {
   AlertDialog,
@@ -18,26 +17,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useArtifactSelector } from "@/hooks/use-artifact";
+import { useAuth } from "@/hooks/use-auth";
 import { useAutoResume } from "@/hooks/use-auto-resume";
-import { useChatVisibility } from "@/hooks/use-chat-visibility";
-import type { Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
+import { getSession } from "@/lib/session-manager";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 import { Artifact } from "./artifact";
+import { BudgetConfirmationModal } from "./budget-confirmation-modal";
 import { useDataStream } from "./data-stream-provider";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
-import { getChatHistoryPaginationKey } from "./sidebar-history";
+import { ODAIContextProvider, useODAIContext } from "./odai-context";
+import { PhaseProgressPanel } from "./phase-progress-panel";
 import { toast } from "./toast";
-import type { VisibilityType } from "./visibility-selector";
 
-export function Chat({
+function ChatInner({
   id,
   initialMessages,
   initialChatModel,
-  initialVisibilityType,
   isReadonly,
   autoResume,
   initialLastContext,
@@ -45,24 +44,29 @@ export function Chat({
   id: string;
   initialMessages: ChatMessage[];
   initialChatModel: string;
-  initialVisibilityType: VisibilityType;
+  initialVisibilityType: string;
   isReadonly: boolean;
   autoResume: boolean;
   initialLastContext?: AppUsage;
 }) {
   const router = useRouter();
+  const odaiContext = useODAIContext();
+  const auth = useAuth();
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const { visibilityType } = useChatVisibility({
-    chatId: id,
-    initialVisibilityType,
-  });
+  useEffect(() => {
+    if (!authChecked) {
+      setAuthChecked(true);
+      return;
+    }
 
-  const { mutate } = useSWRConfig();
+    if (!auth.isAuthenticated && !process.env.NEXT_PUBLIC_SKIP_AUTH) {
+      auth.promptForAccessCode();
+    }
+  }, [auth.isAuthenticated, authChecked]);
 
-  // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      // When user navigates back/forward, refresh to sync with URL
       router.refresh();
     };
 
@@ -77,9 +81,35 @@ export function Chat({
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const currentModelIdRef = useRef(currentModelId);
 
+  const [odaiParams, setOdaiParams] = useState({
+    includePhaseEvents: true,
+    skipSafetyCheck: false,
+    skipLlmEnhancement: false,
+    skipLlmJudge: false,
+    maxSamplesPerModel: 3,
+  });
+  const odaiParamsRef = useRef(odaiParams);
+
+  const handleParametersChange = useCallback(
+    (params: {
+      includePhaseEvents?: boolean;
+      skipSafetyCheck?: boolean;
+      skipLlmEnhancement?: boolean;
+      skipLlmJudge?: boolean;
+      maxSamplesPerModel?: number;
+    }) => {
+      setOdaiParams((prev) => ({ ...prev, ...params }));
+    },
+    []
+  );
+
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  useEffect(() => {
+    odaiParamsRef.current = odaiParams;
+  }, [odaiParams]);
 
   const {
     messages,
@@ -97,31 +127,39 @@ export function Chat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       fetch: fetchWithErrorHandlers,
-      prepareSendMessagesRequest(request) {
+      body: () => {
         return {
-          body: {
-            id: request.id,
-            message: request.messages.at(-1),
-            selectedChatModel: currentModelIdRef.current,
-            selectedVisibilityType: visibilityType,
-            ...request.body,
-          },
+          selectedChatModel: currentModelIdRef.current,
+          include_phase_events: odaiParamsRef.current.includePhaseEvents,
+          skip_safety_check: odaiParamsRef.current.skipSafetyCheck,
+          skip_llm_enhancement: odaiParamsRef.current.skipLlmEnhancement,
+          skip_llm_judge: odaiParamsRef.current.skipLlmJudge,
+          max_samples_per_model: odaiParamsRef.current.maxSamplesPerModel,
         };
+      },
+      headers: () => {
+        const session = getSession();
+        const headers: Record<string, string> = {};
+        if (session) {
+          headers.Authorization = `Bearer ${session.sessionToken}`;
+        }
+        return headers;
       },
     }),
     onData: (dataPart) => {
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+
       if (dataPart.type === "data-usage") {
         setUsage(dataPart.data);
       }
     },
-    onFinish: () => {
-      mutate(unstable_serialize(getChatHistoryPaginationKey));
-    },
     onError: (error) => {
+      console.error("Chat error:", error);
+
       if (error instanceof ChatSDKError) {
-        // Check if it's a credit card error
-        if (
+        if (error.type === "unauthorized" && error.surface === "auth") {
+          auth.promptForAccessCode();
+        } else if (
           error.message?.includes("AI Gateway requires a valid credit card")
         ) {
           setShowCreditCardAlert(true);
@@ -131,9 +169,117 @@ export function Chat({
             description: error.message,
           });
         }
+      } else {
+        toast({
+          type: "error",
+          description:
+            error?.message || "Failed to generate response. Please try again.",
+        });
       }
     },
   });
+
+  useEffect(() => {
+    if (status === "submitted") {
+      odaiContext.reset();
+    }
+  }, [status, odaiContext.reset]);
+
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const handlersRef = useRef({
+    handlePhaseStart: odaiContext.handlePhaseStart,
+    handlePhaseProgress: odaiContext.handlePhaseProgress,
+    handlePhaseComplete: odaiContext.handlePhaseComplete,
+    handleModelActive: odaiContext.handleModelActive,
+    handleModelComplete: odaiContext.handleModelComplete,
+    handleWebSearch: odaiContext.handleWebSearch,
+    setCostEstimate: odaiContext.setCostEstimate,
+    setBudgetConfirmation: odaiContext.setBudgetConfirmation,
+  });
+
+  useEffect(() => {
+    handlersRef.current = {
+      handlePhaseStart: odaiContext.handlePhaseStart,
+      handlePhaseProgress: odaiContext.handlePhaseProgress,
+      handlePhaseComplete: odaiContext.handlePhaseComplete,
+      handleModelActive: odaiContext.handleModelActive,
+      handleModelComplete: odaiContext.handleModelComplete,
+      handleWebSearch: odaiContext.handleWebSearch,
+      setCostEstimate: odaiContext.setCostEstimate,
+      setBudgetConfirmation: odaiContext.setBudgetConfirmation,
+    };
+  }, [odaiContext]);
+
+  useEffect(() => {
+    if (
+      (status === "streaming" || status === "submitted") &&
+      !eventSourceRef.current
+    ) {
+      const eventSource = new EventSource("/api/chat/events");
+      eventSourceRef.current = eventSource;
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "connected") {
+            return;
+          }
+
+          const { eventType, data: eventData } = data;
+
+          switch (eventType) {
+            case "phase.start":
+              handlersRef.current.handlePhaseStart(eventData);
+              break;
+            case "phase.progress":
+              handlersRef.current.handlePhaseProgress(eventData);
+              break;
+            case "phase.complete":
+              handlersRef.current.handlePhaseComplete(eventData);
+              break;
+            case "model.active":
+              handlersRef.current.handleModelActive(eventData);
+              break;
+            case "model.complete":
+              handlersRef.current.handleModelComplete(eventData);
+              break;
+            case "web.search":
+              handlersRef.current.handleWebSearch(eventData);
+              break;
+            case "cost.estimate":
+              handlersRef.current.setCostEstimate(eventData);
+              break;
+            case "budget.confirmation_required":
+              handlersRef.current.setBudgetConfirmation(eventData);
+              break;
+            default:
+              break;
+          }
+        } catch (error) {
+          console.error("Failed to parse ODAI event:", error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("ODAI events SSE error:", error);
+        eventSource.close();
+        eventSourceRef.current = null;
+      };
+    }
+
+    if (status === "ready" && eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, [status]);
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
@@ -152,11 +298,6 @@ export function Chat({
     }
   }, [query, sendMessage, hasAppendedQuery, id]);
 
-  const { data: votes } = useSWR<Vote[]>(
-    messages.length >= 2 ? `/api/vote?chatId=${id}` : null,
-    fetcher
-  );
-
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
 
@@ -169,12 +310,8 @@ export function Chat({
 
   return (
     <>
-      <div className="overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col bg-background">
-        <ChatHeader
-          chatId={id}
-          isReadonly={isReadonly}
-          selectedVisibilityType={initialVisibilityType}
-        />
+      <div className="overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col overflow-visible bg-background">
+        <ChatHeader />
 
         <Messages
           chatId={id}
@@ -182,26 +319,41 @@ export function Chat({
           isReadonly={isReadonly}
           messages={messages}
           regenerate={regenerate}
-          selectedModelId={initialChatModel}
+          selectedModelId={currentModelId}
           setMessages={setMessages}
           status={status}
-          votes={votes}
+          votes={[]}
         />
 
-        <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
+        {!isReadonly &&
+          (status === "streaming" ||
+            status === "submitted" ||
+            odaiContext.phases.some((p) => p.status !== "pending")) && (
+            <div className="sticky bottom-0 z-2 w-full animate-fade-in overflow-visible bg-background py-3">
+              <PhaseProgressPanel />
+            </div>
+          )}
+
+        <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl flex-col gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
           {!isReadonly && (
             <MultimodalInput
               attachments={attachments}
               chatId={id}
+              includePhaseEvents={odaiParams.includePhaseEvents}
               input={input}
+              maxSamplesPerModel={odaiParams.maxSamplesPerModel}
               messages={messages}
               onModelChange={setCurrentModelId}
+              onParametersChange={handleParametersChange}
               selectedModelId={currentModelId}
-              selectedVisibilityType={visibilityType}
+              selectedVisibilityType="private"
               sendMessage={sendMessage}
               setAttachments={setAttachments}
               setInput={setInput}
               setMessages={setMessages}
+              skipLlmEnhancement={odaiParams.skipLlmEnhancement}
+              skipLlmJudge={odaiParams.skipLlmJudge}
+              skipSafetyCheck={odaiParams.skipSafetyCheck}
               status={status}
               stop={stop}
               usage={usage}
@@ -218,14 +370,30 @@ export function Chat({
         messages={messages}
         regenerate={regenerate}
         selectedModelId={currentModelId}
-        selectedVisibilityType={visibilityType}
+        selectedVisibilityType="private"
         sendMessage={sendMessage}
         setAttachments={setAttachments}
         setInput={setInput}
         setMessages={setMessages}
         status={status}
         stop={stop}
-        votes={votes}
+        votes={[]}
+      />
+
+      {odaiContext.budgetConfirmation && (
+        <BudgetConfirmationModal
+          event={odaiContext.budgetConfirmation}
+          onClose={() => odaiContext.setBudgetConfirmation(null)}
+          onConfirm={() => {
+            odaiContext.setBudgetConfirmation(null);
+          }}
+        />
+      )}
+
+      <AccessCodeModal
+        onOpenChange={auth.setShowAccessCodeModal}
+        onSuccess={auth.handleAccessCodeSuccess}
+        open={auth.showAccessCodeModal}
       />
 
       <AlertDialog
@@ -258,5 +426,21 @@ export function Chat({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+export function Chat(props: {
+  id: string;
+  initialMessages: ChatMessage[];
+  initialChatModel: string;
+  initialVisibilityType: string;
+  isReadonly: boolean;
+  autoResume: boolean;
+  initialLastContext?: AppUsage;
+}) {
+  return (
+    <ODAIContextProvider>
+      <ChatInner {...props} />
+    </ODAIContextProvider>
   );
 }

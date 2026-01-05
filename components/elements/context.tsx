@@ -12,7 +12,6 @@ import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
 
 export type ContextProps = ComponentProps<"button"> & {
-  /** Optional full usage payload to enable breakdown view */
   usage?: AppUsage;
 };
 
@@ -21,14 +20,13 @@ const _MILLION = 1_000_000;
 const _BILLION = 1_000_000_000;
 const PERCENT_MAX = 100;
 
-// Lucide CircleIcon geometry
 const ICON_VIEWBOX = 24;
 const ICON_CENTER = 12;
 const ICON_RADIUS = 10;
 const ICON_STROKE_WIDTH = 2;
 
 type ContextIconProps = {
-  percent: number; // 0 - 100
+  percent: number;
 };
 
 export const ContextIcon = ({ percent }: ContextIconProps) => {

@@ -8,7 +8,7 @@ import {
 import { createRoot } from "react-dom/client";
 import type { ArtifactKind } from "@/components/artifact";
 import { Suggestion as PreviewSuggestion } from "@/components/suggestion";
-import type { Suggestion } from "@/lib/db/schema";
+import type { Suggestion } from "@/lib/types-db";
 
 export interface UISuggestion extends Suggestion {
   selectionStart: number;
@@ -123,7 +123,6 @@ export function createSuggestionWidget(
   return {
     dom,
     destroy: () => {
-      // Wrapping unmount in setTimeout to avoid synchronous unmounting during render
       setTimeout(() => {
         root.unmount();
       }, 0);

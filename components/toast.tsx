@@ -34,8 +34,8 @@ function Toast(props: ToastProps) {
       setMultiLine(lines > 1);
     };
 
-    update(); // initial check
-    const ro = new ResizeObserver(update); // re-check on width changes
+    update();
+    const ro = new ResizeObserver(update);
     ro.observe(el);
 
     return () => ro.disconnect();
