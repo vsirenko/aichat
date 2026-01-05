@@ -16,6 +16,18 @@ import {
 } from "@/components/icons";
 import { generateUUID } from "@/lib/utils";
 
+// Type declaration for Pyodide
+declare global {
+  interface Window {
+    loadPyodide: (config: { indexURL: string }) => Promise<any>;
+  }
+}
+
+// Extend globalThis to include loadPyodide
+interface PyodideGlobal {
+  loadPyodide: (config: { indexURL: string }) => Promise<any>;
+}
+
 const OUTPUT_HANDLERS = {
   matplotlib: `
     import io
@@ -133,7 +145,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
         }));
 
         try {
-          const currentPyodideInstance = await globalThis.loadPyodide({
+          const currentPyodideInstance = await (globalThis as unknown as PyodideGlobal).loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
           });
 
