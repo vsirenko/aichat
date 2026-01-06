@@ -70,13 +70,13 @@ const INITIAL_PHASES: PhaseState[] = [
     status: "pending",
   },
   {
-    phase: "budget",
+    phase: "budget_allocation",
     phase_number: 2,
     phase_name: "Budget Allocation",
     status: "pending",
   },
   {
-    phase: "prompts",
+    phase: "prompt_engineering",
     phase_number: 3,
     phase_name: "Prompt Engineering",
     status: "pending",

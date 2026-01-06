@@ -2,10 +2,13 @@
 
 import { CheckCircle2, ChevronDown, Circle, XCircle } from "lucide-react";
 import { memo, useState } from "react";
+import { isPhaseClickable } from "@/lib/ai/phase-utils";
 import type { PhaseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ModelExecutionTable } from "./model-execution-table";
 import { useODAIContext } from "./odai-context";
+import { PhaseDetailModal } from "./phase-detail-modal";
+import { PhaseStepDetail } from "./phase-step-detail";
 import { ResponsiveSheet } from "./ui/responsive-sheet";
 import { WaveProgressDisplay } from "./wave-progress-display";
 import { WebRefreshDisplay } from "./web-refresh-display";
@@ -41,14 +44,10 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 
   const isInferencePhase = phase.phase === "inference";
   const isPreAnalysisPhase = phase.phase === "pre_analysis";
-  const hasDetails =
-    (isInferencePhase &&
-      (phase.status === "running" || phase.status === "completed")) ||
-    (isPreAnalysisPhase &&
-      (phase.status === "running" || phase.status === "completed"));
+  const hasDetails = isPhaseClickable(phase);
 
   const progress = phase.progress_percent ?? 0;
-  const showProgress = phase.status === "running" && progress > 0;
+  const showProgress = phase.status === "running";
 
   const tooltipText = [
     phase.phase_name,
@@ -125,9 +124,29 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
         )}
       </button>
 
-      {showProgress && phase.current_step_name && (
-        <div className="absolute -bottom-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-background/95 px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm backdrop-blur-sm">
-          {phase.current_step_name}
+      {phase.status === "running" && (
+        <div className="absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 text-center">
+          {phase.current_step_name ? (
+            <>
+              <div className="whitespace-nowrap text-xs font-medium text-foreground">
+                {phase.current_step_name}
+              </div>
+              {phase.current_step_status && (
+                <div className="whitespace-nowrap text-muted-foreground text-[10px] capitalize">
+                  {phase.current_step_status.replace(/_/g, " ")}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="whitespace-nowrap text-xs font-medium text-foreground">
+                {phase.phase_name}
+              </div>
+              <div className="whitespace-nowrap text-muted-foreground text-[10px]">
+                In Progress
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -137,6 +156,8 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 function PhaseProgressPanelContent() {
   const { phases, models, webSources, webRefreshDetails } = useODAIContext();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [selectedPhaseForModal, setSelectedPhaseForModal] =
+    useState<PhaseState | null>(null);
 
   const inferencePhase = phases.find((p) => p.phase === "inference");
   const canShowWaveProgress =
@@ -152,18 +173,24 @@ function PhaseProgressPanelContent() {
       preAnalysisPhase.status === "completed") &&
     webSources.length > 0;
 
+  const handlePhaseClick = (phase: PhaseState) => {
+    if (phase.phase === "inference" && canShowWaveProgress) {
+      setExpandedPhase(expandedPhase === phase.phase ? null : phase.phase);
+    } else if (phase.phase === "pre_analysis" && canShowWebSources) {
+      setExpandedPhase(expandedPhase === phase.phase ? null : phase.phase);
+    } else if (isPhaseClickable(phase)) {
+      setSelectedPhaseForModal(phase);
+    }
+  };
+
   return (
     <>
-      <div className="flex items-center justify-center px-2 md:px-4">
+      <div className="flex items-center justify-center px-2 pb-12 md:px-4">
         {phases.map((phase, index) => (
           <div className="flex items-center" key={phase.phase}>
             <PhaseIndicator
               isExpanded={expandedPhase === phase.phase}
-              onClick={() =>
-                setExpandedPhase(
-                  expandedPhase === phase.phase ? null : phase.phase
-                )
-              }
+              onClick={() => handlePhaseClick(phase)}
               phase={phase}
             />
             {index < phases.length - 1 && (
@@ -210,6 +237,14 @@ function PhaseProgressPanelContent() {
           <ModelExecutionTable models={models} />
         </div>
       </ResponsiveSheet>
+
+      <PhaseDetailModal
+        onOpenChange={(open) => {
+          if (!open) setSelectedPhaseForModal(null);
+        }}
+        open={selectedPhaseForModal !== null}
+        phase={selectedPhaseForModal}
+      />
     </>
   );
 }

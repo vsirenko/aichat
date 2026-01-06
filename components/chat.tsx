@@ -31,6 +31,7 @@ import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { ODAIContextProvider, useODAIContext } from "./odai-context";
 import { PhaseProgressPanel } from "./phase-progress-panel";
+import { ThinkingIndicator } from "./thinking-indicator";
 import { toast } from "./toast";
 
 function ChatInner({
@@ -329,7 +330,10 @@ function ChatInner({
           (status === "streaming" ||
             status === "submitted" ||
             odaiContext.phases.some((p) => p.status !== "pending")) && (
-            <div className="sticky bottom-0 z-2 w-full animate-fade-in overflow-visible bg-background py-3">
+            <div className="sticky bottom-0 z-2 w-full animate-fade-in space-y-4 overflow-visible bg-background px-4 py-6">
+              {(status === "streaming" || status === "submitted") && (
+                <ThinkingIndicator className="mx-auto max-w-md" />
+              )}
               <PhaseProgressPanel />
             </div>
           )}
