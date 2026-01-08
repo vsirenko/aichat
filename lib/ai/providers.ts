@@ -18,14 +18,36 @@ const ODAI_API_BASE_URL =
 
 const globalForODAI = globalThis as unknown as {
   odaiEventEmitter: EventEmitter | undefined;
+  eventBuffer: Array<{ eventType: string; data: unknown }> | undefined;
 };
 
 export const odaiEventEmitter =
   globalForODAI.odaiEventEmitter ?? new EventEmitter();
 
+// Buffer to store events that arrive before any listeners are registered
+const eventBuffer: Array<{ eventType: string; data: unknown }> = 
+  globalForODAI.eventBuffer ?? [];
+
 if (process.env.NODE_ENV !== "production") {
   globalForODAI.odaiEventEmitter = odaiEventEmitter;
+  globalForODAI.eventBuffer = eventBuffer;
 }
+
+// Function to flush buffered events to a new listener
+export function flushEventBuffer(): Array<{ eventType: string; data: unknown }> {
+  const events = [...eventBuffer];
+  eventBuffer.length = 0;
+  console.log(`[ODAI Provider] Flushing ${events.length} buffered events`);
+  return events;
+}
+
+// Clear old events from buffer after 30 seconds
+setInterval(() => {
+  if (eventBuffer.length > 0) {
+    console.log(`[ODAI Provider] Clearing ${eventBuffer.length} old buffered events`);
+    eventBuffer.length = 0;
+  }
+}, 30000);
 
 class ODAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = "v2" as const;
@@ -199,8 +221,16 @@ class ODAILanguageModel implements LanguageModelV2 {
                 };
 
                 console.log(`[ODAI Provider] Emitting ODAI event: ${event.type}`, event.data);
-                odaiEventEmitter.emit("odai-event", eventPayload);
-                console.log(`[ODAI Provider] Event emitted, listener count: ${odaiEventEmitter.listenerCount("odai-event")}`);
+                
+                const listenerCount = odaiEventEmitter.listenerCount("odai-event");
+                
+                if (listenerCount === 0) {
+                  console.log(`[ODAI Provider] No listeners, buffering event: ${event.type}`);
+                  eventBuffer.push(eventPayload);
+                } else {
+                  odaiEventEmitter.emit("odai-event", eventPayload);
+                  console.log(`[ODAI Provider] Event emitted, listener count: ${listenerCount}`);
+                }
               }
             }
           }
