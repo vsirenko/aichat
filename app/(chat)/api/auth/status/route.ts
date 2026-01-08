@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { getSessionStatus } from "@/lib/ai/odai-auth";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const authHeader = request.headers.get("Authorization");
+    const headersList = await headers();
+    const authHeader = headersList.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or invalid Authorization header" },

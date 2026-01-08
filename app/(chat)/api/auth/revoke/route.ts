@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { revokeToken } from "@/lib/ai/odai-auth";
 
@@ -8,6 +9,7 @@ const revokeSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    await headers();
     const json = await request.json();
     const body = revokeSchema.parse(json);
 
