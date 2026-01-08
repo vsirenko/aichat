@@ -218,12 +218,10 @@ function ChatInner({
     };
   }, [odaiContext]);
 
+  // Open EventSource connection immediately on mount and keep it open
   useEffect(() => {
-    if (
-      (status === "streaming" || status === "submitted") &&
-      !eventSourceRef.current
-    ) {
-      console.log("[ODAI SSE] Opening EventSource connection to /api/chat/events");
+    if (!eventSourceRef.current) {
+      console.log("[ODAI SSE] Opening persistent EventSource connection to /api/chat/events");
       const eventSource = new EventSource("/api/chat/events");
       eventSourceRef.current = eventSource;
 
@@ -306,29 +304,27 @@ function ChatInner({
         console.log("[ODAI SSE] ReadyState meanings: 0=CONNECTING, 1=OPEN, 2=CLOSED");
         
         if (eventSource.readyState === EventSource.CLOSED) {
-          console.log("[ODAI SSE] Connection closed, will attempt reconnect on next status change");
+          console.log("[ODAI SSE] Connection closed, attempting reconnect...");
+          eventSourceRef.current = null;
+          // Reconnect after a short delay
+          setTimeout(() => {
+            if (!eventSourceRef.current) {
+              console.log("[ODAI SSE] Reconnecting...");
+              window.location.reload(); // Simple reconnect by reloading
+            }
+          }, 1000);
         }
-        
-        console.log("[ODAI SSE] Closing connection");
-        eventSource.close();
-        eventSourceRef.current = null;
       };
-    }
-
-    if (status === "ready" && eventSourceRef.current) {
-      console.log("[ODAI SSE] Status changed to ready, closing connection");
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
     }
 
     return () => {
       if (eventSourceRef.current) {
-        console.log("[ODAI SSE] Cleanup: closing EventSource");
+        console.log("[ODAI SSE] Component unmounting, closing EventSource");
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
     };
-  }, [status]);
+  }, []); // Empty dependency array - runs once on mount
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
