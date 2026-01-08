@@ -17,12 +17,13 @@ export async function GET(request: Request) {
       
       const eventHandler = (event: { eventType: string; data: unknown }) => {
         try {
-          console.log(`[Events API] Emitting event: ${event.eventType}`, event.data);
+          console.log(`[Events API] 📨 Received event from EventEmitter: ${event.eventType}`);
+          console.log(`[Events API] Event data:`, JSON.stringify(event.data).substring(0, 200));
           const data = JSON.stringify(event);
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-          console.log("[Events API] Event sent successfully");
+          console.log(`[Events API] ✅ Event sent to client: ${event.eventType}`);
         } catch (error) {
-          console.error("[Events API] Failed to send ODAI event:", error);
+          console.error("[Events API] ❌ Failed to send ODAI event:", error);
         }
       };
 

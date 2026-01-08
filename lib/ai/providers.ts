@@ -162,6 +162,8 @@ class ODAILanguageModel implements LanguageModelV2 {
             }
 
             for (const event of events) {
+              console.log(`[ODAI Provider] Processing event type: ${event.type}`);
+              
               if (event.type === "message.delta") {
                 const content = extractTextFromDelta(event);
                 if (content) {
@@ -220,16 +222,19 @@ class ODAILanguageModel implements LanguageModelV2 {
                   data: event.data,
                 };
 
-                console.log(`[ODAI Provider] Emitting ODAI event: ${event.type}`, event.data);
+                console.log(`[ODAI Provider] ⚡ Received ODAI event: ${event.type}`);
+                console.log(`[ODAI Provider] Event data:`, JSON.stringify(event.data).substring(0, 200));
                 
                 const listenerCount = odaiEventEmitter.listenerCount("odai-event");
+                console.log(`[ODAI Provider] Current listener count: ${listenerCount}`);
                 
                 if (listenerCount === 0) {
-                  console.log(`[ODAI Provider] No listeners, buffering event: ${event.type}`);
+                  console.log(`[ODAI Provider] ⚠️ No listeners, buffering event: ${event.type}`);
                   eventBuffer.push(eventPayload);
                 } else {
+                  console.log(`[ODAI Provider] ✅ Emitting event to ${listenerCount} listener(s)`);
                   odaiEventEmitter.emit("odai-event", eventPayload);
-                  console.log(`[ODAI Provider] Event emitted, listener count: ${listenerCount}`);
+                  console.log(`[ODAI Provider] ✅ Event emitted successfully: ${event.type}`);
                 }
               }
             }
