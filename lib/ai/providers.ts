@@ -198,7 +198,9 @@ class ODAILanguageModel implements LanguageModelV2 {
                   data: event.data,
                 };
 
+                console.log(`[ODAI Provider] Emitting ODAI event: ${event.type}`, event.data);
                 odaiEventEmitter.emit("odai-event", eventPayload);
+                console.log(`[ODAI Provider] Event emitted, listener count: ${odaiEventEmitter.listenerCount("odai-event")}`);
               }
             }
           }
