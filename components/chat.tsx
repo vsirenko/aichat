@@ -129,7 +129,7 @@ function ChatInner({
       api: "/api/chat",
       fetch: fetchWithErrorHandlers,
       body: () => {
-        return {
+        const requestBody = {
           selectedChatModel: currentModelIdRef.current,
           include_phase_events: odaiParamsRef.current.includePhaseEvents,
           skip_safety_check: odaiParamsRef.current.skipSafetyCheck,
@@ -137,12 +137,17 @@ function ChatInner({
           skip_llm_judge: odaiParamsRef.current.skipLlmJudge,
           max_samples_per_model: odaiParamsRef.current.maxSamplesPerModel,
         };
+        console.log("[Chat] Sending chat request with body:", requestBody);
+        return requestBody;
       },
       headers: () => {
         const session = getSession();
         const headers: Record<string, string> = {};
         if (session) {
           headers.Authorization = `Bearer ${session.sessionToken}`;
+          console.log("[Chat] Authorization header added");
+        } else {
+          console.log("[Chat] No session found, sending without auth");
         }
         return headers;
       },
@@ -181,7 +186,9 @@ function ChatInner({
   });
 
   useEffect(() => {
+    console.log(`[Chat] Status changed to: ${status}`);
     if (status === "submitted") {
+      console.log("[Chat] Resetting ODAI context");
       odaiContext.reset();
     }
   }, [status, odaiContext.reset]);
@@ -216,66 +223,107 @@ function ChatInner({
       (status === "streaming" || status === "submitted") &&
       !eventSourceRef.current
     ) {
+      console.log("[ODAI SSE] Opening EventSource connection to /api/chat/events");
       const eventSource = new EventSource("/api/chat/events");
       eventSourceRef.current = eventSource;
 
+      eventSource.onopen = () => {
+        console.log("[ODAI SSE] Connection opened successfully");
+      };
+
       eventSource.onmessage = (event) => {
         try {
+          console.log("[ODAI SSE] Raw event data:", event.data);
           const data = JSON.parse(event.data);
+          console.log("[ODAI SSE] Parsed event:", data);
 
           if (data.type === "connected") {
+            console.log("[ODAI SSE] Connected event received");
             return;
           }
 
           const { eventType, data: eventData } = data;
+          
+          if (!eventType) {
+            console.warn("[ODAI SSE] Event without eventType:", data);
+            return;
+          }
+          
+          if (!eventData) {
+            console.warn("[ODAI SSE] Event without data:", data);
+            return;
+          }
+          
+          console.log(`[ODAI SSE] Processing ${eventType}:`, eventData);
 
           switch (eventType) {
             case "phase.start":
+              console.log(`[ODAI SSE] Phase START: ${eventData.phase} (${eventData.phase_name})`);
               handlersRef.current.handlePhaseStart(eventData);
               break;
             case "phase.progress":
+              console.log(`[ODAI SSE] Phase PROGRESS: ${eventData.phase} - ${eventData.step_name} (${eventData.progress_percent}%)`);
               handlersRef.current.handlePhaseProgress(eventData);
               break;
             case "phase.complete":
+              console.log(`[ODAI SSE] Phase COMPLETE: ${eventData.phase} - Duration: ${(eventData.duration_ms / 1000).toFixed(2)}s, Success: ${eventData.success}`);
               handlersRef.current.handlePhaseComplete(eventData);
               break;
             case "model.active":
+              console.log(`[ODAI SSE] Model ACTIVE: ${eventData.model_id} (${eventData.provider}) - Sample ${eventData.sample_index}`);
               handlersRef.current.handleModelActive(eventData);
               break;
             case "model.complete":
+              console.log(`[ODAI SSE] Model COMPLETE: ${eventData.model_id} - Status: ${eventData.status}, Duration: ${(eventData.duration_ms / 1000).toFixed(2)}s`);
               handlersRef.current.handleModelComplete(eventData);
               break;
             case "web.search":
+              console.log(`[ODAI SSE] Web Search: ${eventData.action}`, eventData.sources_count ? `${eventData.sources_count} sources` : "");
               handlersRef.current.handleWebSearch(eventData);
               break;
             case "cost.estimate":
+              console.log(`[ODAI SSE] Cost Estimate: $${eventData.estimated_cost_usd.toFixed(4)} - ${eventData.sample_count} samples`);
               handlersRef.current.setCostEstimate(eventData);
               break;
             case "budget.confirmation_required":
+              console.log(`[ODAI SSE] Budget Confirmation Required: $${eventData.estimated_cost_usd}`);
               handlersRef.current.setBudgetConfirmation(eventData);
               break;
             default:
+              console.log(`[ODAI SSE] Unknown event type: ${eventType}`, eventData);
               break;
           }
         } catch (error) {
-          console.error("Failed to parse ODAI event:", error);
+          console.error("[ODAI SSE] Failed to parse event:", error);
+          console.error("[ODAI SSE] Raw data:", event.data);
+          console.error("[ODAI SSE] Error stack:", error instanceof Error ? error.stack : "No stack");
         }
       };
 
       eventSource.onerror = (error) => {
-        console.error("ODAI events SSE error:", error);
+        console.error("[ODAI SSE] Connection error:", error);
+        console.log("[ODAI SSE] ReadyState:", eventSource.readyState);
+        console.log("[ODAI SSE] ReadyState meanings: 0=CONNECTING, 1=OPEN, 2=CLOSED");
+        
+        if (eventSource.readyState === EventSource.CLOSED) {
+          console.log("[ODAI SSE] Connection closed, will attempt reconnect on next status change");
+        }
+        
+        console.log("[ODAI SSE] Closing connection");
         eventSource.close();
         eventSourceRef.current = null;
       };
     }
 
     if (status === "ready" && eventSourceRef.current) {
+      console.log("[ODAI SSE] Status changed to ready, closing connection");
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
 
     return () => {
       if (eventSourceRef.current) {
+        console.log("[ODAI SSE] Cleanup: closing EventSource");
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }

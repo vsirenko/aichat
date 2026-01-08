@@ -117,13 +117,24 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   );
 
   const handlePhaseStart = useCallback((event: PhaseStartEvent) => {
+    console.log(`[ODAI Context] handlePhaseStart called for phase: ${event.phase} (${event.phase_name})`);
     setPhases((prev) => {
       const currentPhaseIndex = prev.findIndex((p) => p.phase === event.phase);
-      return prev.map((p, index) => {
+      const currentPhase = prev[currentPhaseIndex];
+      
+      console.log(`[ODAI Context] Current phase state:`, {
+        phase: currentPhase?.phase,
+        status: currentPhase?.status,
+        progress: currentPhase?.progress_percent,
+      });
+      
+      const newPhases = prev.map((p, index) => {
         if (index < currentPhaseIndex && p.status === "pending") {
+          console.log(`[ODAI Context] Auto-completing phase ${p.phase} (was pending before current phase)`);
           return { ...p, status: "completed" as const, progress_percent: 100 };
         }
         if (p.phase === event.phase) {
+          console.log(`[ODAI Context] Starting phase ${event.phase}: ${currentPhase?.status} -> running`);
           return {
             ...p,
             status: "running" as const,
@@ -137,23 +148,37 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
         }
         return p;
       });
+      
+      return newPhases;
     });
   }, []);
 
   const handlePhaseProgress = useCallback((event: PhaseProgressEvent) => {
+    console.log(`[ODAI Context] handlePhaseProgress for ${event.phase}: ${event.step_name} (${event.progress_percent}%)`);
+    
     if (
       event.phase === "inference" &&
       event.step === "web_context_refresh" &&
       event.details
     ) {
+      console.log(`[ODAI Context] Setting web refresh details:`, event.details);
       setWebRefreshDetails(event.details as unknown as WebContextRefreshDetails);
     }
 
-    setPhases((prev) =>
-      prev.map((p) =>
+    setPhases((prev) => {
+      const phase = prev.find((p) => p.phase === event.phase);
+      console.log(`[ODAI Context] Updating phase ${event.phase} progress: ${phase?.progress_percent}% -> ${event.progress_percent}%`);
+      
+        // FALLBACK: Если получили progress для фазы которая не running, запустим её
+        if (phase && phase.status !== "running" && phase.status !== "completed") {
+          console.warn(`[ODAI Context] Received progress for ${event.phase} but status is ${phase.status}, auto-starting phase`);
+        }
+      
+      return prev.map((p) =>
         p.phase === event.phase
           ? {
               ...p,
+              status: p.status === "pending" ? ("running" as const) : p.status, // Auto-start if pending
               progress_percent: event.progress_percent,
               current_step: event.step,
               current_step_name: event.step_name,
@@ -164,15 +189,23 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
               },
             }
           : p
-      )
-    );
+      );
+    });
   }, []);
 
   const handlePhaseComplete = useCallback((event: PhaseCompleteEvent) => {
+    console.log(`[ODAI Context] handlePhaseComplete for ${event.phase}: success=${event.success}, duration=${(event.duration_ms / 1000).toFixed(2)}s`);
+    
     setPhases((prev) => {
       const currentPhaseIndex = prev.findIndex((p) => p.phase === event.phase);
+      const currentPhase = prev[currentPhaseIndex];
+      
+      console.log(`[ODAI Context] Completing phase ${event.phase}: ${currentPhase?.status} -> ${event.success ? "completed" : "failed"}`);
+      console.log(`[ODAI Context] Phase summary:`, event.summary);
+      
       return prev.map((p, index) => {
         if (index < currentPhaseIndex && p.status === "pending") {
+          console.log(`[ODAI Context] Auto-completing phase ${p.phase} (was pending before completed phase)`);
           return { ...p, status: "completed" as const, progress_percent: 100 };
         }
         if (p.phase === event.phase) {

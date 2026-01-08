@@ -129,7 +129,7 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
           {phase.current_step_name ? (
             <>
               <div className="whitespace-nowrap text-xs font-medium text-foreground">
-                {phase.current_step_name}
+          {phase.current_step_name}
               </div>
               {phase.current_step_status && (
                 <div className="whitespace-nowrap text-muted-foreground text-[10px] capitalize">
