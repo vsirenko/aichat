@@ -8,8 +8,12 @@ export async function GET(request: Request) {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       console.log("[Events API] Stream started, setting up event handler");
+      
+      // Send connected message first
+      controller.enqueue(encoder.encode(`data: {"type":"connected"}\n\n`));
+      console.log("[Events API] Connected message sent");
       
       const eventHandler = (event: { eventType: string; data: unknown }) => {
         try {
@@ -22,19 +26,24 @@ export async function GET(request: Request) {
         }
       };
 
+      // Register listener before flushing buffer
       odaiEventEmitter.on("odai-event", eventHandler);
-      console.log("[Events API] Event listener registered");
+      console.log("[Events API] Event listener registered, current listener count:", odaiEventEmitter.listenerCount("odai-event"));
 
-      // Send buffered events immediately
+      // Small delay to ensure connection is established
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Send buffered events immediately after registering listener
       const bufferedEvents = flushEventBuffer();
-      console.log(`[Events API] Sending ${bufferedEvents.length} buffered events`);
+      console.log(`[Events API] Flushing ${bufferedEvents.length} buffered events`);
       for (const event of bufferedEvents) {
         try {
+          console.log(`[Events API] Sending buffered event: ${event.eventType}`, JSON.stringify(event.data).substring(0, 100));
           const data = JSON.stringify(event);
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           console.log(`[Events API] Buffered event sent: ${event.eventType}`);
         } catch (error) {
-          console.error("[Events API] Failed to send buffered event:", error);
+          console.error("[Events API] Failed to send buffered event:", error, event);
         }
       }
 
@@ -43,9 +52,6 @@ export async function GET(request: Request) {
         odaiEventEmitter.off("odai-event", eventHandler);
         controller.close();
       });
-
-      controller.enqueue(encoder.encode(`data: {"type":"connected"}\n\n`));
-      console.log("[Events API] Connected message sent");
     },
   });
 
