@@ -20,7 +20,7 @@
   --odai-gray-dark: 0 0% 24%;
   --odai-black: 0 0% 7%;
 
-  --background: hsl(0 0% 100%);
+  --background: hsl(var(--odai-gray-light));
   --foreground: hsl(var(--odai-black));
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(var(--odai-black));
@@ -212,7 +212,8 @@
   h6 {
     font-family: var(--font-lexend-zetta);
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
   }
 
   * {

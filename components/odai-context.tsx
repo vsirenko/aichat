@@ -291,6 +291,13 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     setWebRefreshDetails(null);
     setCostEstimate(null);
     setBudgetConfirmation(null);
+    
+    // Immediately start phase 0 (safety check) to show user it's working
+    setTimeout(() => {
+      setPhases(prev => prev.map((p, idx) => 
+        idx === 0 ? { ...p, status: "running" as const, progress_percent: 0 } : p
+      ));
+    }, 100);
   }, []);
 
   const value = useMemo<ODAIContextValue>(

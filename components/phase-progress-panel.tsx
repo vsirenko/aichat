@@ -30,15 +30,15 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 
   const iconColors = {
     pending: "text-muted-foreground/40",
-    running: "text-blue-600 dark:text-blue-400 animate-pulse",
-    completed: "text-green-600 dark:text-green-500",
+    running: "animate-pulse",
+    completed: "",
     failed: "text-red-600 dark:text-red-500",
   };
 
   const cardStyles = {
     pending: "border-border/40 bg-muted/10",
-    running: "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg",
-    completed: "border-green-500/50 bg-green-50/30 dark:bg-green-950/20",
+    running: "shadow-lg",
+    completed: "",
     failed: "border-red-500/50 bg-red-50/30 dark:bg-red-950/20",
   };
 
@@ -80,15 +80,15 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
             viewBox="0 0 100 100"
           >
             <circle
-              className="stroke-blue-200 dark:stroke-blue-900"
               cx="50"
               cy="50"
               fill="none"
               r="45"
               strokeWidth="10"
+              stroke="#DCDCDC"
             />
             <circle
-              className="stroke-blue-600 dark:stroke-blue-400 transition-all duration-500"
+              className="transition-all duration-500"
               cx="50"
               cy="50"
               fill="none"
@@ -96,6 +96,7 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
               strokeDasharray={`${progress * 2.827} 282.7`}
               strokeLinecap="round"
               strokeWidth="10"
+              stroke="#3B43FE"
             />
           </svg>
         )}
@@ -106,6 +107,10 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
             iconColors[phase.status],
             phase.status === "running" && "fill-current"
           )}
+          style={{
+            color: phase.status === "running" ? "#3B43FE" : 
+                   phase.status === "completed" ? "#D6FFA6" : undefined
+          }}
         />
 
         <div className="-bottom-0.5 -right-0.5 absolute z-20 flex h-4 w-4 items-center justify-center rounded-full bg-background font-bold text-[8px] shadow-sm ring-1 ring-border sm:h-[18px] sm:w-[18px] sm:text-[9px]">

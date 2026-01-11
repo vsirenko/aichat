@@ -12,12 +12,13 @@ function PureChatHeader() {
     <header className="sticky top-0 z-50 flex items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/60">
       {}
       <div className="flex items-center gap-3">
-        <ODAILogo className="shrink-0" size={56} />
+        <ODAILogo className="shrink-0" size={72} />
       </div>
 
       {}
       <Button
-        className="ml-auto h-9 gap-2 rounded-full bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+        className="ml-auto h-9 gap-2 rounded-full px-4 text-white hover:opacity-90"
+        style={{ background: "#3B43FE" }}
         onClick={() => {
           router.push("/");
           router.refresh();
