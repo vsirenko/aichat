@@ -8,7 +8,7 @@ import { odai, setCurrentSessionId } from "@/lib/ai/providers";
 import { ChatSDKError } from "@/lib/errors";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
-export const maxDuration = 900;
+export const maxDuration = 800;
 
 export const odaiEventsStore = new Map<
   string,

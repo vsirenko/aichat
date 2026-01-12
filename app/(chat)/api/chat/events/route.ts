@@ -1,6 +1,6 @@
 import { getSessionEmitter, flushEventBuffer } from "@/lib/ai/providers";
 
-export const maxDuration = 900;
+export const maxDuration = 800;
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
