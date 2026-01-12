@@ -17,37 +17,66 @@ const ODAI_API_BASE_URL =
   process.env.ODAI_API_BASE_URL || "http://45.63.92.192:52847";
 
 const globalForODAI = globalThis as unknown as {
-  odaiEventEmitter: EventEmitter | undefined;
-  eventBuffer: Array<{ eventType: string; data: unknown }> | undefined;
+  sessionEmitters: Map<string, EventEmitter> | undefined;
+  sessionBuffers: Map<string, Array<{ eventType: string; data: unknown }>> | undefined;
+  currentSessionId: string | undefined;
 };
 
-export const odaiEventEmitter =
-  globalForODAI.odaiEventEmitter ?? new EventEmitter();
+// Map of session ID to EventEmitter
+const sessionEmitters: Map<string, EventEmitter> = 
+  globalForODAI.sessionEmitters ?? new Map();
 
-// Buffer to store events that arrive before any listeners are registered
-const eventBuffer: Array<{ eventType: string; data: unknown }> = 
-  globalForODAI.eventBuffer ?? [];
+// Map of session ID to event buffer
+const sessionBuffers: Map<string, Array<{ eventType: string; data: unknown }>> = 
+  globalForODAI.sessionBuffers ?? new Map();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForODAI.odaiEventEmitter = odaiEventEmitter;
-  globalForODAI.eventBuffer = eventBuffer;
+  globalForODAI.sessionEmitters = sessionEmitters;
+  globalForODAI.sessionBuffers = sessionBuffers;
 }
 
-// Function to flush buffered events to a new listener
-export function flushEventBuffer(): Array<{ eventType: string; data: unknown }> {
-  const events = [...eventBuffer];
-  eventBuffer.length = 0;
-  console.log(`[ODAI Provider] Flushing ${events.length} buffered events`);
+// Get or create emitter for a session
+export function getSessionEmitter(sessionId: string): EventEmitter {
+  if (!sessionEmitters.has(sessionId)) {
+    console.log(`[ODAI Provider] Creating new EventEmitter for session: ${sessionId}`);
+    sessionEmitters.set(sessionId, new EventEmitter());
+  }
+  return sessionEmitters.get(sessionId)!;
+}
+
+// Get or create buffer for a session
+function getSessionBuffer(sessionId: string): Array<{ eventType: string; data: unknown }> {
+  if (!sessionBuffers.has(sessionId)) {
+    sessionBuffers.set(sessionId, []);
+  }
+  return sessionBuffers.get(sessionId)!;
+}
+
+// Function to flush buffered events for a session
+export function flushEventBuffer(sessionId: string): Array<{ eventType: string; data: unknown }> {
+  const buffer = getSessionBuffer(sessionId);
+  const events = [...buffer];
+  buffer.length = 0;
+  console.log(`[ODAI Provider] Flushing ${events.length} buffered events for session: ${sessionId}`);
   return events;
 }
 
-// Clear old events from buffer after 30 seconds
+// Function to set current session ID (called before streamText)
+export function setCurrentSessionId(sessionId: string) {
+  globalForODAI.currentSessionId = sessionId;
+  console.log(`[ODAI Provider] Current session ID set to: ${sessionId}`);
+}
+
+// Clean up old sessions and buffers every 5 minutes
 setInterval(() => {
-  if (eventBuffer.length > 0) {
-    console.log(`[ODAI Provider] Clearing ${eventBuffer.length} old buffered events`);
-    eventBuffer.length = 0;
+  for (const [sessionId, emitter] of sessionEmitters.entries()) {
+    if (emitter.listenerCount("odai-event") === 0) {
+      console.log(`[ODAI Provider] Cleaning up session: ${sessionId}`);
+      sessionEmitters.delete(sessionId);
+      sessionBuffers.delete(sessionId);
+    }
   }
-}, 30000);
+}, 300000);
 
 class ODAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = "v2" as const;
@@ -71,9 +100,26 @@ class ODAILanguageModel implements LanguageModelV2 {
   }> {
     const sessionToken = await getSessionToken();
 
+    // Get sessionId from global variable (set before streamText call)
+    let sessionId = globalForODAI.currentSessionId;
+    
+    // Get ODAI params from providerMetadata
     const odaiParams =
       (options as { providerMetadata?: { odai?: Record<string, unknown> } })
         .providerMetadata?.odai || {};
+    
+    // Fallback to providerMetadata for sessionId (if supported in future)
+    if (!sessionId) {
+      sessionId = (odaiParams.sessionId as string);
+    }
+    
+    // Final fallback to random UUID
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      console.warn(`[ODAI Provider] No sessionId provided, generated new one: ${sessionId}`);
+    }
+    
+    console.log(`[ODAI Provider] Starting stream for session: ${sessionId}`);
 
     const messages: ODAIMessage[] = options.prompt
       .filter((msg) => msg.role !== "tool")
@@ -127,7 +173,7 @@ class ODAILanguageModel implements LanguageModelV2 {
       );
     }
 
-    const stream = this.createStreamTransformer(response.body!);
+    const stream = this.createStreamTransformer(response.body!, sessionId);
 
     return {
       stream,
@@ -135,7 +181,8 @@ class ODAILanguageModel implements LanguageModelV2 {
   }
 
   private createStreamTransformer(
-    body: ReadableStream<Uint8Array>
+    body: ReadableStream<Uint8Array>,
+    sessionId: string
   ): ReadableStream<LanguageModelV2StreamPart> {
     const decoder = new TextDecoder();
     let buffer = "";
@@ -162,8 +209,9 @@ class ODAILanguageModel implements LanguageModelV2 {
             }
 
             for (const event of events) {
-              console.log(`[ODAI Provider] Processing event type: ${event.type}`);
+              console.log(`[ODAI Provider] Processing event type: ${event.type} for session: ${sessionId}`);
               
+
               if (event.type === "message.delta") {
                 const content = extractTextFromDelta(event);
                 if (content) {
@@ -222,19 +270,21 @@ class ODAILanguageModel implements LanguageModelV2 {
                   data: event.data,
                 };
 
-                console.log(`[ODAI Provider] ⚡ Received ODAI event: ${event.type}`);
+                console.log(`[ODAI Provider] Received ODAI event: ${event.type} for session: ${sessionId}`);
                 console.log(`[ODAI Provider] Event data:`, JSON.stringify(event.data).substring(0, 200));
                 
-                const listenerCount = odaiEventEmitter.listenerCount("odai-event");
-                console.log(`[ODAI Provider] Current listener count: ${listenerCount}`);
+                const emitter = getSessionEmitter(sessionId);
+                const listenerCount = emitter.listenerCount("odai-event");
+                console.log(`[ODAI Provider] Current listener count for session ${sessionId}: ${listenerCount}`);
                 
                 if (listenerCount === 0) {
-                  console.log(`[ODAI Provider] ⚠️ No listeners, buffering event: ${event.type}`);
-                  eventBuffer.push(eventPayload);
+                  console.log(`[ODAI Provider] No listeners, buffering event: ${event.type} for session: ${sessionId}`);
+                  const buffer = getSessionBuffer(sessionId);
+                  buffer.push(eventPayload);
                 } else {
-                  console.log(`[ODAI Provider] ✅ Emitting event to ${listenerCount} listener(s)`);
-                  odaiEventEmitter.emit("odai-event", eventPayload);
-                  console.log(`[ODAI Provider] ✅ Event emitted successfully: ${event.type}`);
+                  console.log(`[ODAI Provider] Emitting event to ${listenerCount} listener(s) for session: ${sessionId}`);
+                  emitter.emit("odai-event", eventPayload);
+                  console.log(`[ODAI Provider] Event emitted successfully: ${event.type}`);
                 }
               }
             }

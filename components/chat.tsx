@@ -130,6 +130,7 @@ function ChatInner({
       fetch: fetchWithErrorHandlers,
       body: () => {
         const requestBody = {
+          id,
           selectedChatModel: currentModelIdRef.current,
           include_phase_events: odaiParamsRef.current.includePhaseEvents,
           skip_safety_check: odaiParamsRef.current.skipSafetyCheck,
@@ -137,7 +138,8 @@ function ChatInner({
           skip_llm_judge: odaiParamsRef.current.skipLlmJudge,
           max_samples_per_model: odaiParamsRef.current.maxSamplesPerModel,
         };
-        console.log("[Chat] Sending chat request with body:", requestBody);
+        console.log("[Chat] Sending chat request with sessionId:", id);
+        console.log("[Chat] Full request body:", requestBody);
         return requestBody;
       },
       headers: () => {
@@ -221,8 +223,10 @@ function ChatInner({
   // Open EventSource connection immediately on mount and keep it open
   useEffect(() => {
     if (!eventSourceRef.current) {
-      console.log("[ODAI SSE] Opening persistent EventSource connection to /api/chat/events");
-      const eventSource = new EventSource("/api/chat/events");
+      console.log("[ODAI SSE] Opening persistent EventSource connection");
+      console.log("[ODAI SSE] Chat ID (sessionId):", id);
+      console.log("[ODAI SSE] EventSource URL:", `/api/chat/events?sessionId=${id}`);
+      const eventSource = new EventSource(`/api/chat/events?sessionId=${id}`);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
@@ -319,12 +323,12 @@ function ChatInner({
 
     return () => {
       if (eventSourceRef.current) {
-        console.log("[ODAI SSE] Component unmounting, closing EventSource");
+        console.log("[ODAI SSE] Component unmounting or id changed, closing EventSource");
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
     };
-  }, []); // Empty dependency array - runs once on mount
+  }, [id]); // Reconnect when chat id changes
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");

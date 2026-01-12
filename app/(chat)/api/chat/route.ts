@@ -4,11 +4,11 @@ import {
   setSessionCache,
   validateODAIConfig,
 } from "@/lib/ai/odai-auth";
-import { odai } from "@/lib/ai/providers";
+import { odai, setCurrentSessionId } from "@/lib/ai/providers";
 import { ChatSDKError } from "@/lib/errors";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
-export const maxDuration = 300;
+export const maxDuration = 900;
 
 export const odaiEventsStore = new Map<
   string,
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     validateODAIConfig();
 
     const {
+      id,
       messages,
       selectedChatModel,
       include_phase_events = true,
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
       max_samples_per_model = 3,
     } = requestBody;
 
+    const sessionId = id || crypto.randomUUID();
+    console.log("[Chat API] Session ID:", sessionId);
     console.log("[Chat API] Model:", selectedChatModel);
     console.log("[Chat API] ODAI params:", {
       include_phase_events,
@@ -76,6 +79,11 @@ export async function POST(request: Request) {
       selectedChatModel === "odai-frontier" ? odai.frontier() : odai.fast();
 
     console.log("[Chat API] Starting streamText...");
+    console.log("[Chat API] Setting sessionId for provider:", sessionId);
+    
+    // Set sessionId globally before calling streamText
+    setCurrentSessionId(sessionId);
+    
     const result = streamText({
       model,
       messages: await convertToModelMessages(messages),
