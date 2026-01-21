@@ -1,172 +1,168 @@
-import type { PhaseState } from "@/lib/types";
+/**
+ * Utility functions for parsing ODAI phase summaries with backward compatibility.
+ * These functions handle field renames and structural changes in phase summaries.
+ */
 
-export interface SafetySummary extends Record<string, unknown> {
-  decision: "allowed" | "block";
-  confidence?: number;
-  duration_ms?: number;
-  rationale?: string;
-  violation_category?: string;
+/**
+ * Extract URLs extracted count from extraction summary.
+ * Handles both new (urls_extracted) and old (urls) field names.
+ */
+export function getUrlsExtracted(extraction: Record<string, unknown> | undefined): number {
+  if (!extraction) return 0;
+  return (extraction.urls_extracted as number) ?? (extraction.urls as number) ?? 0;
 }
 
-export interface PreAnalysisSummary extends Record<string, unknown> {
-  complexity?: {
-    score: number;
-    tier: "low" | "medium" | "high" | "extreme";
-    rationale?: string;
-    is_decomposable?: boolean;
-    decomposition_count?: number;
-  };
-  domain?: {
-    primary: string;
-    secondary?: string[];
-    confidence?: number;
-    subdomain_hints?: string[];
-    programming_languages?: string[];
-  };
-  extraction?: {
-    urls?: number;
-    code_blocks?: number;
-    error_messages?: number;
-    structured_data?: number;
-  };
-  web_search?: {
-    required: boolean;
-    categories?: string[];
-    priority?: string;
-    sources_found?: number;
-  };
-  duration_ms?: number;
+/**
+ * Extract primary domain from domain summary.
+ * Handles both new (primary_domain) and old (primary) field names.
+ * Domains are now human-readable (e.g., "Code", "Math") instead of enum format.
+ */
+export function getPrimaryDomain(domain: Record<string, unknown> | undefined): string {
+  if (!domain) return "unknown";
+  return (domain.primary_domain as string) ?? (domain.primary as string) ?? "unknown";
 }
 
-export interface BudgetSummary extends Record<string, unknown> {
-  execution_mode?: string;
-  budget?: {
-    reasoning_budget: number;
-    sample_count: number;
-    sampling_strategy?: string;
-    estimated_cost_usd: number;
-  };
-  model_roster?: Array<{
-    model_id: string;
-    provider: string;
-    role: string;
-    allocation_percentage: number;
-    sample_count: number;
-  }>;
-  total_models?: number;
-  primary_model?: string;
-  decomposition?: {
-    should_decompose: boolean;
-    sub_task_count?: number;
-    execution_waves?: number;
-    aggregation_strategy?: string;
-  };
-  duration_ms?: number;
+/**
+ * Extract secondary domains from domain summary.
+ * Handles both new (secondary_domains) and old (secondary) field names.
+ */
+export function getSecondaryDomains(domain: Record<string, unknown> | undefined): string[] {
+  if (!domain) return [];
+  return (domain.secondary_domains as string[]) ?? (domain.secondary as string[]) ?? [];
 }
 
-export interface PromptsSummary extends Record<string, unknown> {
-  execution_mode?: string;
-  prompts_generated: number;
-  llm_enhancement?: {
-    applied: boolean;
-    model?: string | null;
-  };
-  tokens?: {
-    total_prompt: number;
-    context_injected: number;
-    context_truncated: boolean;
-  };
-  construction_strategy?: string;
-  duration_ms?: number;
+/**
+ * Extract domain confidence from domain summary.
+ * Handles both new (domain_confidence) and old (confidence) field names.
+ */
+export function getDomainConfidence(domain: Record<string, unknown> | undefined): number {
+  if (!domain) return 0;
+  return (domain.domain_confidence as number) ?? (domain.confidence as number) ?? 0;
 }
 
-export interface InferenceSummary extends Record<string, unknown> {
-  execution_mode?: string;
-  llm_calls?: {
-    total: number;
-    successful: number;
-    failed: number;
-  };
-  models_used?: string[];
-  providers_used?: string[];
-  tokens?: {
-    total: number;
-    thinking: number;
-  };
-  multi_sampling_applied?: boolean;
-  primary_model?: string;
-  duration_ms?: number;
+/**
+ * Extract model list from Phase 2 summary.
+ * Handles both new (decomposition.model_list) and old (model_roster) structures.
+ */
+export function getModelList(phase2Summary: Record<string, unknown> | undefined): string[] {
+  if (!phase2Summary) return [];
+  
+  // New format: decomposition.model_list
+  const decomposition = phase2Summary.decomposition as Record<string, unknown> | undefined;
+  if (decomposition?.model_list) {
+    return decomposition.model_list as string[];
+  }
+  
+  // Old format: model_roster (array of objects with model_id)
+  const modelRoster = phase2Summary.model_roster as Array<{ model_id: string }> | undefined;
+  if (modelRoster) {
+    return modelRoster.map((m) => m.model_id);
+  }
+  
+  return [];
 }
 
-export interface SelectionSummary extends Record<string, unknown> {
-  samples_ranked: number;
-  llm_judge_calls?: number;
-  outliers_detected?: number;
-  winner?: {
-    model: string;
-    provider: string;
-    ranking_score: number;
-    selection_confidence: number;
-    score_breakdown?: Record<string, unknown> | null;
-  };
-  aggregation?: {
-    performed: boolean;
-    model?: string;
-    duration_ms?: number;
-  };
-  timing?: {
-    ranking_duration_ms: number;
-    selection_duration_ms: number;
-    total_duration_ms: number;
+/**
+ * Extract LLM call counts from phase summary.
+ * Handles both new (metrics.successful_llm_calls) and old (successful_calls) field names.
+ */
+export function getLlmCallCounts(summary: Record<string, unknown> | undefined): {
+  successful: number;
+  failed: number;
+} {
+  if (!summary) return { successful: 0, failed: 0 };
+  
+  const metrics = summary.metrics as Record<string, unknown> | undefined;
+  
+  return {
+    successful: 
+      (metrics?.successful_llm_calls as number) ?? 
+      (summary.successful_llm_calls as number) ?? 
+      (summary.successful_calls as number) ?? 
+      0,
+    failed: 
+      (metrics?.failed_llm_calls as number) ?? 
+      (summary.failed_llm_calls as number) ?? 
+      (summary.failed_calls as number) ?? 
+      0,
   };
 }
 
-export function isSafetySummary(
-  details: Record<string, unknown> | undefined
-): details is SafetySummary {
-  return details !== undefined && "decision" in details;
+/**
+ * Format domain string for display.
+ * Domains are now human-readable, so no transformation needed.
+ * This function exists for backward compatibility.
+ */
+export function formatDomain(domain: string): string {
+  // Domain is now human-readable: "Code", "Math", "Science", etc.
+  // No transformation needed
+  return domain;
 }
 
-export function isPreAnalysisSummary(
-  details: Record<string, unknown> | undefined
-): details is PreAnalysisSummary {
-  return details !== undefined && "complexity" in details;
+/**
+ * Extract web context refresh details from Phase 4 summary.
+ * Handles field name changes (refresh_time_ms -> refresh_duration_ms).
+ */
+export function getWebContextRefreshDetails(summary: Record<string, unknown> | undefined): {
+  refreshExecuted: boolean;
+  promptsRefreshed: number;
+  promptsFailed: number;
+  promptsSkipped: number;
+  refreshDurationMs: number;
+} {
+  if (!summary) {
+    return {
+      refreshExecuted: false,
+      promptsRefreshed: 0,
+      promptsFailed: 0,
+      promptsSkipped: 0,
+      refreshDurationMs: 0,
+    };
+  }
+  
+  const webRefresh = summary.web_context_refresh as Record<string, unknown> | undefined;
+  
+  return {
+    refreshExecuted: (webRefresh?.refresh_executed as boolean) ?? false,
+    promptsRefreshed: (webRefresh?.prompts_refreshed as number) ?? 0,
+    promptsFailed: (webRefresh?.prompts_failed as number) ?? 0,
+    promptsSkipped: (webRefresh?.prompts_skipped as number) ?? 0,
+    refreshDurationMs: 
+      (webRefresh?.refresh_duration_ms as number) ?? 
+      (webRefresh?.refresh_time_ms as number) ?? 
+      0,
+  };
 }
 
-export function isBudgetSummary(
-  details: Record<string, unknown> | undefined
-): details is BudgetSummary {
-  return details !== undefined && "budget" in details;
+/**
+ * Extract metrics from phase summary.
+ * All phases now include a standardized metrics block.
+ */
+export function getPhaseMetrics(summary: Record<string, unknown> | undefined): {
+  totalLlmCalls: number;
+  successfulLlmCalls: number;
+  failedLlmCalls: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalThinkingTokens: number;
+  modelsUsed: string[];
+  providersUsed: string[];
+  totalCost: number;
+} | null {
+  if (!summary) return null;
+  
+  const metrics = summary.metrics as Record<string, unknown> | undefined;
+  if (!metrics) return null;
+  
+  return {
+    totalLlmCalls: (metrics.total_llm_calls as number) ?? 0,
+    successfulLlmCalls: (metrics.successful_llm_calls as number) ?? 0,
+    failedLlmCalls: (metrics.failed_llm_calls as number) ?? 0,
+    totalInputTokens: (metrics.total_input_tokens as number) ?? 0,
+    totalOutputTokens: (metrics.total_output_tokens as number) ?? 0,
+    totalThinkingTokens: (metrics.total_thinking_tokens as number) ?? 0,
+    modelsUsed: (metrics.models_used as string[]) ?? [],
+    providersUsed: (metrics.providers_used as string[]) ?? [],
+    totalCost: (metrics.total_cost_usd as number) ?? 0,
+  };
 }
-
-export function isPromptsSummary(
-  details: Record<string, unknown> | undefined
-): details is PromptsSummary {
-  return details !== undefined && "prompts_generated" in details;
-}
-
-export function isInferenceSummary(
-  details: Record<string, unknown> | undefined
-): details is InferenceSummary {
-  return details !== undefined && "llm_calls" in details;
-}
-
-export function isSelectionSummary(
-  details: Record<string, unknown> | undefined
-): details is SelectionSummary {
-  return details !== undefined && "samples_ranked" in details;
-}
-
-export function formatDuration(durationMs: number | undefined): string {
-  if (durationMs === undefined) return "N/A";
-  return `${(durationMs / 1000).toFixed(2)}s`;
-}
-
-export function isPhaseCompleted(phase: PhaseState): boolean {
-  return phase.status === "completed" && phase.details !== undefined;
-}
-
-export function isPhaseClickable(phase: PhaseState): boolean {
-  return isPhaseCompleted(phase) || phase.status === "failed";
-}
-

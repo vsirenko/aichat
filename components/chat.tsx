@@ -237,8 +237,10 @@ function ChatInner({
       handleModelActive: odaiContext.handleModelActive,
       handleModelComplete: odaiContext.handleModelComplete,
       handleWebSearch: odaiContext.handleWebSearch,
+      handleWebScrape: odaiContext.handleWebScrape,
       setCostEstimate: odaiContext.setCostEstimate,
       setBudgetConfirmation: odaiContext.setBudgetConfirmation,
+      addErrorEvent: odaiContext.addErrorEvent,
     };
   }, [odaiContext]);
 
@@ -305,6 +307,10 @@ function ChatInner({
               console.log(`[ODAI SSE] Web Search: ${eventData.action}`, eventData.sources_count ? `${eventData.sources_count} sources` : "");
               handlersRef.current.handleWebSearch(eventData);
               break;
+            case "web.scrape":
+              console.log(`[ODAI SSE] Web Scrape: ${eventData.action}`, eventData.urls_scraped ? `${eventData.urls_scraped.length} URLs` : "");
+              handlersRef.current.handleWebScrape(eventData);
+              break;
             case "cost.estimate":
               console.log(`[ODAI SSE] Cost Estimate: $${eventData.estimated_cost_usd.toFixed(4)} - ${eventData.sample_count} samples`);
               handlersRef.current.setCostEstimate(eventData);
@@ -312,6 +318,13 @@ function ChatInner({
             case "budget.confirmation_required":
               console.log(`[ODAI SSE] Budget Confirmation Required: $${eventData.estimated_cost_usd}`);
               handlersRef.current.setBudgetConfirmation(eventData);
+              break;
+            case "error":
+              console.log(`[ODAI SSE] Error: ${eventData.type} - ${eventData.message}`);
+              handlersRef.current.addErrorEvent(eventData);
+              if (!eventData.recoverable) {
+                toast.error(`Pipeline Error: ${eventData.message}`);
+              }
               break;
             default:
               console.log(`[ODAI SSE] Unknown event type: ${eventType}`, eventData);

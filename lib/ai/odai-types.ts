@@ -8,6 +8,7 @@ export type ODAIEventType =
   | "model.active"
   | "model.complete"
   | "web.search"
+  | "web.scrape"
   | "cost.estimate"
   | "budget.confirmation_required"
   | "budget.confirmation_response"
@@ -21,6 +22,7 @@ export type ODAIPhaseEventType =
   | "model.active"
   | "model.complete"
   | "web.search"
+  | "web.scrape"
   | "cost.estimate"
   | "budget.confirmation_required";
 
@@ -90,6 +92,26 @@ export interface PhaseProgressEvent {
   timestamp: string;
 }
 
+export interface PhaseMetrics {
+  phase_id: string;
+  phase_name: string;
+  duration_ms: number;
+  total_llm_calls: number;
+  successful_llm_calls: number;
+  failed_llm_calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_thinking_tokens: number;
+  models_used: string[];
+  providers_used: string[];
+  total_tool_calls: number;
+  queries_searched: number;
+  sources_scraped: number;
+  llm_cost_usd: number;
+  tool_cost_usd: number;
+  total_cost_usd: number;
+}
+
 export interface PhaseCompleteEvent {
   phase: string;
   phase_number: number;
@@ -134,13 +156,27 @@ export interface WebSearchEvent {
     title: string;
     url: string;
   }>;
+  result_urls?: string[];
+  depth_exploration_used?: boolean;
+  depth_exploration_result_urls?: string[];
+  timestamp: string;
+}
+
+export interface WebScrapeEvent {
+  action: "executing" | "completed";
+  sources?: Array<{
+    title: string;
+    url: string;
+  }>;
+  urls_scraped?: string[];
+  sub_links_scraped?: number;
   timestamp: string;
 }
 
 export interface CostEstimateEvent {
   estimated_cost_usd: number;
   estimated_tokens: number;
-  complexity_tier: "low" | "medium" | "high" | "extreme";
+  complexity_tier: "low" | "medium" | "high" | "extreme" | "frontier";
   model_count: number;
   sample_count: number;
   reasoning_budget: number;
@@ -213,6 +249,7 @@ export interface SSEEvent {
     | ModelActiveEvent
     | ModelCompleteEvent
     | WebSearchEvent
+    | WebScrapeEvent
     | CostEstimateEvent
     | MessageStartEvent
     | MessageDeltaEvent
@@ -238,11 +275,13 @@ export type ODAIStreamAnnotation =
   | { type: "odai-model.active"; data: ModelActiveEvent }
   | { type: "odai-model.complete"; data: ModelCompleteEvent }
   | { type: "odai-web.search"; data: WebSearchEvent }
+  | { type: "odai-web.scrape"; data: WebScrapeEvent }
   | { type: "odai-cost.estimate"; data: CostEstimateEvent }
   | {
       type: "odai-budget.confirmation_required";
       data: BudgetConfirmationRequiredEvent;
-    };
+    }
+  | { type: "odai-error"; data: ErrorEvent };
 
 export interface BudgetConfirmationRequiredEvent {
   estimated_cost_usd: number;

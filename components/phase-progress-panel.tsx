@@ -2,9 +2,9 @@
 
 import { CheckCircle2, ChevronDown, Circle, XCircle } from "lucide-react";
 import { memo, useState } from "react";
-import { isPhaseClickable } from "@/lib/ai/phase-utils";
 import type { PhaseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ErrorAlert } from "./error-alert";
 import { ModelExecutionTable } from "./model-execution-table";
 import { useODAIContext } from "./odai-context";
 import { PhaseDetailModal } from "./phase-detail-modal";
@@ -12,7 +12,16 @@ import { PhaseStepDetail } from "./phase-step-detail";
 import { ResponsiveSheet } from "./ui/responsive-sheet";
 import { WaveProgressDisplay } from "./wave-progress-display";
 import { WebRefreshDisplay } from "./web-refresh-display";
+import { WebScrapePanel } from "./web-scrape-panel";
 import { WebSourcesPanel } from "./web-sources-panel";
+
+function isPhaseClickable(phase: PhaseState): boolean {
+  return (
+    phase.status === "completed" ||
+    phase.status === "failed" ||
+    (phase.status === "running" && Boolean(phase.details))
+  );
+}
 
 interface PhaseIndicatorProps {
   phase: PhaseState;
@@ -159,7 +168,7 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 }
 
 function PhaseProgressPanelContent() {
-  const { phases, models, webSources, webRefreshDetails } = useODAIContext();
+  const { phases, models, webSources, webScrapedSources, webRefreshDetails, errorEvents } = useODAIContext();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [selectedPhaseForModal, setSelectedPhaseForModal] =
     useState<PhaseState | null>(null);
@@ -178,10 +187,16 @@ function PhaseProgressPanelContent() {
       preAnalysisPhase.status === "completed") &&
     webSources.length > 0;
 
+  const canShowWebScrape =
+    preAnalysisPhase &&
+    (preAnalysisPhase.status === "running" ||
+      preAnalysisPhase.status === "completed") &&
+    webScrapedSources.length > 0;
+
   const handlePhaseClick = (phase: PhaseState) => {
     if (phase.phase === "inference" && canShowWaveProgress) {
       setExpandedPhase(expandedPhase === phase.phase ? null : phase.phase);
-    } else if (phase.phase === "pre_analysis" && canShowWebSources) {
+    } else if (phase.phase === "pre_analysis" && (canShowWebSources || canShowWebScrape)) {
       setExpandedPhase(expandedPhase === phase.phase ? null : phase.phase);
     } else if (isPhaseClickable(phase)) {
       setSelectedPhaseForModal(phase);
@@ -190,6 +205,15 @@ function PhaseProgressPanelContent() {
 
   return (
     <>
+      {/* Error Display */}
+      {errorEvents.length > 0 && (
+        <div className="space-y-2 px-4 pb-4">
+          {errorEvents.map((error, index) => (
+            <ErrorAlert key={index} error={error} />
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-center px-2 pb-12 md:px-4">
         {phases.map((phase, index) => (
           <div className="flex items-center" key={phase.phase}>
@@ -215,14 +239,31 @@ function PhaseProgressPanelContent() {
       </div>
 
       <ResponsiveSheet
-        description={`${webSources.length} sources found during pre-analysis`}
+        description={
+          canShowWebSources && canShowWebScrape
+            ? `${webSources.length} sources found, ${webScrapedSources.length} URLs scraped`
+            : canShowWebSources
+              ? `${webSources.length} sources found during pre-analysis`
+              : `${webScrapedSources.length} URLs scraped`
+        }
         onOpenChange={(open) => {
           if (!open) setExpandedPhase(null);
         }}
-        open={Boolean(expandedPhase === "pre_analysis" && canShowWebSources)}
-        title="Web Sources"
+        open={Boolean(expandedPhase === "pre_analysis" && (canShowWebSources || canShowWebScrape))}
+        title="Web Research"
       >
-        <WebSourcesPanel sources={webSources} />
+        <div className="space-y-6">
+          {canShowWebSources && <WebSourcesPanel sources={webSources} />}
+          {canShowWebScrape && (
+            <>
+              {canShowWebSources && <div className="border-t" />}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Scraped URLs</h3>
+                <WebScrapePanel sources={webScrapedSources} />
+              </div>
+            </>
+          )}
+        </div>
       </ResponsiveSheet>
 
       <ResponsiveSheet

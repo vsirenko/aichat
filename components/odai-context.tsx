@@ -11,15 +11,17 @@ import {
 import type {
   BudgetConfirmationRequiredEvent,
   CostEstimateEvent,
+  ErrorEvent,
   ModelActiveEvent,
   ModelCompleteEvent,
   PhaseCompleteEvent,
   PhaseProgressEvent,
   PhaseStartEvent,
   WebContextRefreshDetails,
+  WebScrapeEvent,
   WebSearchEvent,
 } from "@/lib/ai/odai-types";
-import type { ModelExecution, PhaseState, WebSource } from "@/lib/types";
+import type { ModelExecution, PhaseState, WebScrapedSource, WebSource } from "@/lib/types";
 
 interface ODAIContextValue {
   phases: PhaseState[];
@@ -41,6 +43,9 @@ interface ODAIContextValue {
   webSources: WebSource[];
   setWebSources: (sources: WebSource[]) => void;
   handleWebSearch: (event: WebSearchEvent) => void;
+  webScrapedSources: WebScrapedSource[];
+  setWebScrapedSources: (sources: WebScrapedSource[]) => void;
+  handleWebScrape: (event: WebScrapeEvent) => void;
   webRefreshDetails: WebContextRefreshDetails | null;
   setWebRefreshDetails: (details: WebContextRefreshDetails | null) => void;
 
@@ -50,6 +55,9 @@ interface ODAIContextValue {
   setBudgetConfirmation: (
     confirmation: BudgetConfirmationRequiredEvent | null
   ) => void;
+
+  errorEvents: ErrorEvent[];
+  addErrorEvent: (event: ErrorEvent) => void;
 
   reset: () => void;
 }
@@ -99,6 +107,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   const [phases, setPhases] = useState<PhaseState[]>(INITIAL_PHASES);
   const [models, setModels] = useState<ModelExecution[]>([]);
   const [webSources, setWebSources] = useState<WebSource[]>([]);
+  const [webScrapedSources, setWebScrapedSources] = useState<WebScrapedSource[]>([]);
   const [webRefreshDetails, setWebRefreshDetails] =
     useState<WebContextRefreshDetails | null>(null);
   const [costEstimate, setCostEstimate] = useState<CostEstimateEvent | null>(
@@ -106,6 +115,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   );
   const [budgetConfirmation, setBudgetConfirmation] =
     useState<BudgetConfirmationRequiredEvent | null>(null);
+  const [errorEvents, setErrorEvents] = useState<ErrorEvent[]>([]);
 
   const updatePhase = useCallback(
     (phase: string, update: Partial<PhaseState>) => {
@@ -217,6 +227,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
             progress_percent: 100,
             duration_ms: event.duration_ms,
             details: event.summary,
+            summary: event.summary,
             current_step: undefined,
             current_step_name: undefined,
             current_step_status: undefined,
@@ -284,13 +295,28 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleWebScrape = useCallback((event: WebScrapeEvent) => {
+    if (event.action === "completed" && event.sources) {
+      setWebScrapedSources(event.sources.map(s => ({
+        ...s,
+        sub_links: event.sub_links_scraped
+      })));
+    }
+  }, []);
+
+  const addErrorEvent = useCallback((event: ErrorEvent) => {
+    setErrorEvents(prev => [...prev, event]);
+  }, []);
+
   const reset = useCallback(() => {
     setPhases(INITIAL_PHASES);
     setModels([]);
     setWebSources([]);
+    setWebScrapedSources([]);
     setWebRefreshDetails(null);
     setCostEstimate(null);
     setBudgetConfirmation(null);
+    setErrorEvents([]);
     
     // Immediately start phase 0 (safety check) to show user it's working
     setTimeout(() => {
@@ -315,12 +341,17 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       webSources,
       setWebSources,
       handleWebSearch,
+      webScrapedSources,
+      setWebScrapedSources,
+      handleWebScrape,
       webRefreshDetails,
       setWebRefreshDetails,
       costEstimate,
       setCostEstimate,
       budgetConfirmation,
       setBudgetConfirmation,
+      errorEvents,
+      addErrorEvent,
       reset,
     }),
     [
@@ -336,9 +367,13 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       handleModelComplete,
       webSources,
       handleWebSearch,
+      webScrapedSources,
+      handleWebScrape,
       webRefreshDetails,
       costEstimate,
       budgetConfirmation,
+      errorEvents,
+      addErrorEvent,
       reset,
     ]
   );

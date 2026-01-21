@@ -2,7 +2,16 @@
 
 import { memo } from "react";
 import type { PhaseState } from "@/lib/types";
+import type { PhaseMetrics } from "@/lib/ai/odai-types";
 import { cn } from "@/lib/utils";
+import { 
+  getPrimaryDomain, 
+  getSecondaryDomains, 
+  getModelList,
+  getLlmCallCounts,
+  getPhaseMetrics 
+} from "@/lib/ai/phase-utils";
+import { PhaseMetricsDisplay } from "./phase-metrics-display";
 import { ResponsiveSheet } from "./ui/responsive-sheet";
 
 interface PhaseDetailModalProps {
@@ -92,19 +101,35 @@ function DetailItem({
 function SafetyPhaseDetails({ details }: { details?: Record<string, unknown> }) {
   if (!details) return null;
 
-  const decision = (details.decision as string) || "N/A";
+  const metrics = getPhaseMetrics(details);
+  const safety = details.safety as Record<string, unknown> | undefined;
+  const odai = details.odai as Record<string, unknown> | undefined;
+  
+  const decision = (safety?.decision as string) ?? (details.decision as string) ?? "N/A";
+  const isOdaiRelated = (odai?.is_odai_related as boolean) ?? false;
 
   return (
     <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
       <h3 className="font-semibold text-sm">Safety Classification</h3>
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <DetailItem
           label="Decision"
           value={decision}
           valueClassName={
-            decision === "allowed"
+            decision === "allow"
               ? "text-green-600 dark:text-green-500"
               : "text-red-600 dark:text-red-500"
+          }
+        />
+        <DetailItem
+          label="ODAI Query"
+          value={isOdaiRelated ? "Yes" : "No"}
+          valueClassName={
+            isOdaiRelated
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-muted-foreground"
           }
         />
       </div>
@@ -119,17 +144,22 @@ function PreAnalysisPhaseDetails({
 }) {
   if (!details) return null;
 
+  const metrics = getPhaseMetrics(details);
   const complexity = details.complexity as Record<string, unknown> | undefined;
   const domain = details.domain as Record<string, unknown> | undefined;
+  const extraction = details.extraction as Record<string, unknown> | undefined;
   const webSearch = details.web_search as Record<string, unknown> | undefined;
 
   const complexityScore = complexity?.score as number | undefined;
-  const primaryDomain = domain?.primary as string | undefined;
-  const secondaryDomains = (domain?.secondary as string[]) || [];
+  const primaryDomain = getPrimaryDomain(domain);
+  const secondaryDomains = getSecondaryDomains(domain);
+  const urlsExtracted = (extraction?.urls_extracted as number) ?? (extraction?.urls as number) ?? 0;
   const webSearchRequired = webSearch?.required as boolean | undefined;
 
   return (
     <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
       <h3 className="font-semibold text-sm">Analysis Results</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
@@ -138,7 +168,20 @@ function PreAnalysisPhaseDetails({
         />
         <DetailItem
           label="Primary Domain"
-          value={primaryDomain || "N/A"}
+          value={primaryDomain}
+        />
+        <DetailItem
+          label="URLs Extracted"
+          value={urlsExtracted}
+        />
+        <DetailItem
+          label="Web Search Required"
+          value={webSearchRequired !== undefined ? String(webSearchRequired) : "N/A"}
+          valueClassName={
+            webSearchRequired
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-muted-foreground"
+          }
         />
       </div>
       {secondaryDomains.length > 0 && (
@@ -158,15 +201,6 @@ function PreAnalysisPhaseDetails({
           </div>
         </div>
       )}
-      <DetailItem
-        label="Web Search Required"
-        value={webSearchRequired !== undefined ? String(webSearchRequired) : "N/A"}
-        valueClassName={
-          webSearchRequired
-            ? "text-blue-600 dark:text-blue-400"
-            : "text-muted-foreground"
-        }
-      />
     </div>
   );
 }
@@ -174,13 +208,19 @@ function PreAnalysisPhaseDetails({
 function BudgetPhaseDetails({ details }: { details?: Record<string, unknown> }) {
   if (!details) return null;
 
+  const metrics = getPhaseMetrics(details);
   const budget = details.budget as Record<string, unknown> | undefined;
+  const decomposition = details.decomposition as Record<string, unknown> | undefined;
+  
   const estimatedCost = budget?.estimated_cost_usd as number | undefined;
   const reasoningBudget = budget?.reasoning_budget as number | undefined;
   const sampleCount = budget?.sample_count as number | undefined;
+  const modelList = getModelList(details);
 
   return (
     <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
       <h3 className="font-semibold text-sm">Budget Allocation</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
@@ -204,98 +244,18 @@ function BudgetPhaseDetails({ details }: { details?: Record<string, unknown> }) 
           label="Sample Count"
           value={sampleCount !== undefined ? sampleCount : "N/A"}
         />
-      </div>
-    </div>
-  );
-}
-
-function PromptsPhaseDetails({
-  details,
-}: {
-  details?: Record<string, unknown>;
-}) {
-  if (!details) return null;
-
-  const executionMode = details.execution_mode as string | undefined;
-  const promptsGenerated = details.prompts_generated as number | undefined;
-
-  return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-sm">Prompt Engineering</h3>
-      <div className="grid grid-cols-2 gap-4">
         <DetailItem
-          label="Execution Mode"
-          value={executionMode || "N/A"}
-        />
-        <DetailItem
-          label="Prompts Generated"
-          value={promptsGenerated !== undefined ? promptsGenerated : "N/A"}
+          label="Models Selected"
+          value={modelList.length}
         />
       </div>
-    </div>
-  );
-}
-
-function InferencePhaseDetails({
-  details,
-}: {
-  details?: Record<string, unknown>;
-}) {
-  if (!details) return null;
-
-  const executionMode = details.execution_mode as string | undefined;
-  const llmCalls = details.llm_calls as Record<string, unknown> | undefined;
-  const modelsUsed = (details.models_used as string[]) || [];
-  const tokens = details.tokens as Record<string, unknown> | undefined;
-  const multiSampling = details.multi_sampling_applied as boolean | undefined;
-
-  const totalCalls = llmCalls?.total as number | undefined;
-  const totalTokens = tokens?.total as number | undefined;
-  const thinkingTokens = tokens?.thinking as number | undefined;
-
-  return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-sm">Inference Execution</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <DetailItem
-          label="Execution Mode"
-          value={executionMode || "N/A"}
-        />
-        <DetailItem
-          label="Total LLM Calls"
-          value={totalCalls !== undefined ? totalCalls : "N/A"}
-        />
-        <DetailItem
-          label="Total Tokens"
-          value={
-            totalTokens !== undefined ? totalTokens.toLocaleString() : "N/A"
-          }
-        />
-        <DetailItem
-          label="Thinking Tokens"
-          value={
-            thinkingTokens !== undefined
-              ? thinkingTokens.toLocaleString()
-              : "N/A"
-          }
-        />
-        <DetailItem
-          label="Multi-Sampling"
-          value={multiSampling !== undefined ? String(multiSampling) : "N/A"}
-          valueClassName={
-            multiSampling
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-muted-foreground"
-          }
-        />
-      </div>
-      {modelsUsed.length > 0 && (
+      {modelList.length > 0 && (
         <div className="space-y-1">
           <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            Models Used
+            Model Roster
           </div>
           <div className="flex flex-wrap gap-2">
-            {modelsUsed.map((model, i) => (
+            {modelList.map((model, i) => (
               <span
                 key={i}
                 className="rounded-full bg-muted px-2 py-1 font-mono text-xs"
@@ -310,6 +270,118 @@ function InferencePhaseDetails({
   );
 }
 
+function PromptsPhaseDetails({
+  details,
+}: {
+  details?: Record<string, unknown>;
+}) {
+  if (!details) return null;
+
+  const metrics = getPhaseMetrics(details);
+  const promptEngineering = details.prompt_engineering as Record<string, unknown> | undefined;
+  
+  const executionMode = (promptEngineering?.execution_mode as string) ?? (details.execution_mode as string) ?? "N/A";
+  const promptsGenerated = (promptEngineering?.total_prompts_generated as number) ?? (details.prompts_generated as number) ?? 0;
+  const llmEnhancementApplied = (promptEngineering?.llm_enhancement_applied as boolean) ?? false;
+  const llmEnhancementModel = (promptEngineering?.llm_enhancement_model as string) ?? null;
+
+  return (
+    <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
+      <h3 className="font-semibold text-sm">Prompt Engineering</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <DetailItem
+          label="Execution Mode"
+          value={executionMode}
+        />
+        <DetailItem
+          label="Prompts Generated"
+          value={promptsGenerated}
+        />
+        <DetailItem
+          label="LLM Enhancement"
+          value={llmEnhancementApplied ? "Applied" : "Not Applied"}
+          valueClassName={
+            llmEnhancementApplied
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-muted-foreground"
+          }
+        />
+        {llmEnhancementModel && (
+          <DetailItem
+            label="Enhancement Model"
+            value={llmEnhancementModel}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InferencePhaseDetails({
+  details,
+}: {
+  details?: Record<string, unknown>;
+}) {
+  if (!details) return null;
+
+  const metrics = getPhaseMetrics(details);
+  const inference = details.inference as Record<string, unknown> | undefined;
+  const webRefresh = details.web_context_refresh as Record<string, unknown> | undefined;
+  
+  const executionMode = (inference?.execution_mode as string) ?? (details.execution_mode as string) ?? "N/A";
+  const multiSampling = (inference?.multi_sampling_applied as boolean) ?? (details.multi_sampling_applied as boolean) ?? false;
+  const { successful, failed } = getLlmCallCounts(details);
+  const refreshExecuted = (webRefresh?.refresh_executed as boolean) ?? false;
+  const promptsRefreshed = (webRefresh?.prompts_refreshed as number) ?? 0;
+
+  return (
+    <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
+      <h3 className="font-semibold text-sm">Inference Execution</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <DetailItem
+          label="Execution Mode"
+          value={executionMode}
+        />
+        <DetailItem
+          label="Successful Calls"
+          value={successful}
+          valueClassName="text-green-600 dark:text-green-500"
+        />
+        <DetailItem
+          label="Failed Calls"
+          value={failed}
+          valueClassName={failed > 0 ? "text-red-600 dark:text-red-500" : ""}
+        />
+        <DetailItem
+          label="Multi-Sampling"
+          value={multiSampling ? "Yes" : "No"}
+          valueClassName={
+            multiSampling
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-muted-foreground"
+          }
+        />
+      </div>
+      
+      {refreshExecuted && (
+        <div className="space-y-2">
+          <h4 className="font-semibold text-sm">Web Context Refresh</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <DetailItem
+              label="Prompts Refreshed"
+              value={promptsRefreshed}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SelectionPhaseDetails({
   details,
 }: {
@@ -317,52 +389,58 @@ function SelectionPhaseDetails({
 }) {
   if (!details) return null;
 
-  const samplesRanked = details.samples_ranked as number | undefined;
+  const metrics = getPhaseMetrics(details);
+  const ranking = details.ranking as Record<string, unknown> | undefined;
+  const selection = details.selection as Record<string, unknown> | undefined;
   const aggregation = details.aggregation as Record<string, unknown> | undefined;
-  const timing = details.timing as Record<string, unknown> | undefined;
 
-  const aggregationPerformed = aggregation?.performed as boolean | undefined;
-  const rankingDuration = timing?.ranking_duration_ms as number | undefined;
-  const selectionDuration = timing?.selection_duration_ms as number | undefined;
+  const samplesRanked = (ranking?.total_samples_ranked as number) ?? (details.samples_ranked as number) ?? 0;
+  const winnerModel = (selection?.winner_model as string) ?? "N/A";
+  const rankingScore = (selection?.ranking_score as number) ?? undefined;
+  const aggregationPerformed = (aggregation?.aggregation_performed as boolean) ?? false;
+  const aggregationModel = (aggregation?.aggregation_model as string) ?? null;
 
   return (
     <div className="space-y-4">
+      {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
+      
       <h3 className="font-semibold text-sm">Response Selection</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
           label="Samples Ranked"
-          value={samplesRanked !== undefined ? samplesRanked : "N/A"}
+          value={samplesRanked}
         />
         <DetailItem
-          label="Aggregation Performed"
-          value={
-            aggregationPerformed !== undefined
-              ? String(aggregationPerformed)
-              : "N/A"
-          }
+          label="Winner Model"
+          value={winnerModel}
+          valueClassName="text-blue-600 dark:text-blue-400"
+        />
+        {rankingScore !== undefined && (
+          <DetailItem
+            label="Ranking Score"
+            value={rankingScore.toFixed(2)}
+          />
+        )}
+        <DetailItem
+          label="Aggregation"
+          value={aggregationPerformed ? "Yes" : "No"}
           valueClassName={
             aggregationPerformed
               ? "text-green-600 dark:text-green-500"
               : "text-muted-foreground"
           }
         />
-        <DetailItem
-          label="Ranking Duration"
-          value={
-            rankingDuration !== undefined
-              ? `${(rankingDuration / 1000).toFixed(2)}s`
-              : "N/A"
-          }
-        />
-        <DetailItem
-          label="Selection Duration"
-          value={
-            selectionDuration !== undefined
-              ? `${(selectionDuration / 1000).toFixed(2)}s`
-              : "N/A"
-          }
-        />
       </div>
+      {aggregationModel && (
+        <div className="space-y-1">
+          <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            Aggregation Model
+          </div>
+          <span className="rounded-full bg-muted px-2 py-1 font-mono text-xs">
+            {aggregationModel}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

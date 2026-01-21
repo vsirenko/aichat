@@ -938,26 +938,55 @@ export const ChevronDownIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
+export const SparklesIcon = ({ size = 20 }: { size?: number }) => (
   <svg
     height={size}
-    strokeLinejoin="round"
-    style={{ color: "currentcolor" }}
-    viewBox="0 0 16 16"
     width={size}
+    viewBox="0 0 104.12 104.12"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ display: "block" }}
   >
-    <path
-      d="M2.5 0.5V0H3.5V0.5C3.5 1.60457 4.39543 2.5 5.5 2.5H6V3V3.5H5.5C4.39543 3.5 3.5 4.39543 3.5 5.5V6H3H2.5V5.5C2.5 4.39543 1.60457 3.5 0.5 3.5H0V3V2.5H0.5C1.60457 2.5 2.5 1.60457 2.5 0.5Z"
+    <defs>
+      <style>
+        {`
+          @keyframes odai-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .odai-rotating {
+            animation: odai-spin 2s linear infinite;
+            transform-origin: 52.06px 52.06px;
+          }
+        `}
+      </style>
+    </defs>
+    
+    {/* Main white circle background */}
+    <circle
+      cx="52.06"
+      cy="52.06"
+      r="52.01"
       fill="currentColor"
     />
-    <path
-      d="M14.5 4.5V5H13.5V4.5C13.5 3.94772 13.0523 3.5 12.5 3.5H12V3V2.5H12.5C13.0523 2.5 13.5 2.05228 13.5 1.5V1H14H14.5V1.5C14.5 2.05228 14.9477 2.5 15.5 2.5H16V3V3.5H15.5C14.9477 3.5 14.5 3.94772 14.5 4.5Z"
-      fill="currentColor"
-    />
-    <path
-      d="M8.40706 4.92939L8.5 4H9.5L9.59294 4.92939C9.82973 7.29734 11.7027 9.17027 14.0706 9.40706L15 9.5V10.5L14.0706 10.5929C11.7027 10.8297 9.82973 12.7027 9.59294 15.0706L9.5 16H8.5L8.40706 15.0706C8.17027 12.7027 6.29734 10.8297 3.92939 10.5929L3 10.5V9.5L3.92939 9.40706C6.29734 9.17027 8.17027 7.29734 8.40706 4.92939Z"
-      fill="currentColor"
-    />
+    
+    {/* Rotating segments */}
+    <g className="odai-rotating">
+      {/* Top segments - thin lines */}
+      <path d="M96.92,49.97l-15.66,1.43-.38-4.23,15.65-1.43.39,4.22h0Z" fill="black" />
+      <path d="M95.74,41.58l-15.12,4.3-1.06-3.73,15.12-4.3,1.06,3.73h0Z" fill="black" />
+      <path d="M91.44,30.41l1.57,3.15-14.07,7.02-1.57-3.15,14.07-7.02h0Z" fill="black" />
+      <path d="M88.81,26.21l-12.54,9.49-1.91-2.52,12.54-9.49,1.91,2.52h0Z" fill="black" />
+      <path d="M83.32,19.78l-10.6,11.62-2.07-1.89,10.6-11.62,2.07,1.89h0Z" fill="black" />
+      <path d="M76.72,14.5l-8.29,13.35-2.08-1.28,8.29-13.35,2.08,1.28h0Z" fill="black" />
+      <path d="M67.31,9.78l1.94.75-5.69,14.66-1.94-.75,5.69-14.66h0Z" fill="black" />
+      <path d="M59.45,7.74l1.69.31-2.87,15.46-1.69-.31,2.87-15.46h0Z" fill="black" />
+      <path d="M51.38,7.13h1.36v15.73h-1.36v-15.73h0Z" fill="black" />
+      
+      {/* Bottom-right thick segments */}
+      <path d="M91.03,74.38l-13.56-6.77,12.11,9.15-3.43,4.53-10.56-7.99,8.94,9.79-4.46,4.07-7.6-8.33,5.96,9.6-5.44,3.37-4.92-7.93,3.38,8.71-6.31,2.45-2.68-6.92,1.36,7.31-7,1.3-1-5.37v5.48h-7.48v-15.72h6.46l5.3-.99,5.02-1.95,4.59-2.84,3.99-3.64,3.28-4.34h0l2.37-4.76,14.07,7.02-2.37,4.76h-.02Z" fill="black" />
+      <path d="M94.54,66.66l-15.12-4.3,1.36-4.77,15.12,4.3-1.35,4.77h0Z" fill="black" />
+      <path d="M80.87,56.98l.42-4.58,15.65,1.43-.42,4.58-15.65-1.43h0Z" fill="black" />
+    </g>
   </svg>
 );
 

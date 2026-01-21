@@ -42,7 +42,7 @@ function PureWebRefreshDisplay({ details }: WebRefreshDisplayProps) {
         <div>
           <div className="mb-1 text-muted-foreground text-xs">Refresh Time</div>
           <div className="font-bold text-2xl">
-            {(details.refresh_time_ms / 1000).toFixed(1)}s
+            {((details.refresh_duration_ms ?? details.refresh_time_ms ?? 0) / 1000).toFixed(1)}s
           </div>
         </div>
       </div>

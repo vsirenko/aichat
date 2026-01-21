@@ -64,6 +64,7 @@ export interface PhaseState {
   status: "pending" | "running" | "completed" | "failed";
   duration_ms?: number;
   details?: Record<string, unknown>;
+  summary?: Record<string, unknown>;
   progress_percent?: number;
   current_step?: string;
   current_step_name?: string;
@@ -85,4 +86,10 @@ export interface ModelExecution {
 export interface WebSource {
   title: string;
   url: string;
+}
+
+export interface WebScrapedSource {
+  title: string;
+  url: string;
+  sub_links?: number;
 }

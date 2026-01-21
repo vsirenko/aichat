@@ -3,13 +3,20 @@
 import { ChevronDownIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import { memo, useState } from "react";
 import type { WebSource } from "@/lib/types";
+import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 
 interface WebSourcesPanelProps {
   sources: WebSource[];
+  depthExplorationUsed?: boolean;
+  depthExplorationUrls?: string[];
 }
 
-function PureWebSourcesPanel({ sources }: WebSourcesPanelProps) {
+function PureWebSourcesPanel({ 
+  sources, 
+  depthExplorationUsed = false,
+  depthExplorationUrls = []
+}: WebSourcesPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (sources.length === 0) {
@@ -21,6 +28,22 @@ function PureWebSourcesPanel({ sources }: WebSourcesPanelProps) {
 
   return (
     <div className="space-y-3">
+      {depthExplorationUsed && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-3 py-2 dark:border-blue-900/50 dark:bg-blue-950/30">
+          <div className="flex items-center gap-2 text-sm">
+            <GlobeIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="font-medium text-blue-900 dark:text-blue-100">
+              Depth Exploration Used
+            </span>
+            {depthExplorationUrls.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                +{depthExplorationUrls.length} related
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
       <ScrollArea className={isExpanded ? "h-[60vh]" : "h-auto"}>
         <div className="space-y-2 pr-3">
           {displaySources.map((source, index) => {
