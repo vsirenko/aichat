@@ -307,5 +307,6 @@ export interface WebContextRefreshDetails {
   prompts_skipped: number;
   total_sources_found: number;
   total_urls_scraped: number;
-  refresh_time_ms: number;
+  refresh_time_ms?: number;
+  refresh_duration_ms?: number;
 }

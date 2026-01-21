@@ -225,8 +225,10 @@ function ChatInner({
     handleModelActive: odaiContext.handleModelActive,
     handleModelComplete: odaiContext.handleModelComplete,
     handleWebSearch: odaiContext.handleWebSearch,
+    handleWebScrape: odaiContext.handleWebScrape,
     setCostEstimate: odaiContext.setCostEstimate,
     setBudgetConfirmation: odaiContext.setBudgetConfirmation,
+    addErrorEvent: odaiContext.addErrorEvent,
   });
 
   useEffect(() => {
@@ -323,7 +325,10 @@ function ChatInner({
               console.log(`[ODAI SSE] Error: ${eventData.type} - ${eventData.message}`);
               handlersRef.current.addErrorEvent(eventData);
               if (!eventData.recoverable) {
-                toast.error(`Pipeline Error: ${eventData.message}`);
+                toast({
+                  type: "error",
+                  description: `Pipeline Error: ${eventData.message}`
+                });
               }
               break;
             default:

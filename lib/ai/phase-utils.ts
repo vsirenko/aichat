@@ -139,15 +139,23 @@ export function getWebContextRefreshDetails(summary: Record<string, unknown> | u
  * All phases now include a standardized metrics block.
  */
 export function getPhaseMetrics(summary: Record<string, unknown> | undefined): {
-  totalLlmCalls: number;
-  successfulLlmCalls: number;
-  failedLlmCalls: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalThinkingTokens: number;
-  modelsUsed: string[];
-  providersUsed: string[];
-  totalCost: number;
+  phase_id: string;
+  phase_name: string;
+  duration_ms: number;
+  total_llm_calls: number;
+  successful_llm_calls: number;
+  failed_llm_calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_thinking_tokens: number;
+  models_used: string[];
+  providers_used: string[];
+  total_tool_calls: number;
+  queries_searched: number;
+  sources_scraped: number;
+  llm_cost_usd: number;
+  tool_cost_usd: number;
+  total_cost_usd: number;
 } | null {
   if (!summary) return null;
   
@@ -155,14 +163,22 @@ export function getPhaseMetrics(summary: Record<string, unknown> | undefined): {
   if (!metrics) return null;
   
   return {
-    totalLlmCalls: (metrics.total_llm_calls as number) ?? 0,
-    successfulLlmCalls: (metrics.successful_llm_calls as number) ?? 0,
-    failedLlmCalls: (metrics.failed_llm_calls as number) ?? 0,
-    totalInputTokens: (metrics.total_input_tokens as number) ?? 0,
-    totalOutputTokens: (metrics.total_output_tokens as number) ?? 0,
-    totalThinkingTokens: (metrics.total_thinking_tokens as number) ?? 0,
-    modelsUsed: (metrics.models_used as string[]) ?? [],
-    providersUsed: (metrics.providers_used as string[]) ?? [],
-    totalCost: (metrics.total_cost_usd as number) ?? 0,
+    phase_id: (metrics.phase_id as string) ?? "",
+    phase_name: (metrics.phase_name as string) ?? "",
+    duration_ms: (metrics.duration_ms as number) ?? 0,
+    total_llm_calls: (metrics.total_llm_calls as number) ?? 0,
+    successful_llm_calls: (metrics.successful_llm_calls as number) ?? 0,
+    failed_llm_calls: (metrics.failed_llm_calls as number) ?? 0,
+    total_input_tokens: (metrics.total_input_tokens as number) ?? 0,
+    total_output_tokens: (metrics.total_output_tokens as number) ?? 0,
+    total_thinking_tokens: (metrics.total_thinking_tokens as number) ?? 0,
+    models_used: (metrics.models_used as string[]) ?? [],
+    providers_used: (metrics.providers_used as string[]) ?? [],
+    total_tool_calls: (metrics.total_tool_calls as number) ?? 0,
+    queries_searched: (metrics.queries_searched as number) ?? 0,
+    sources_scraped: (metrics.sources_scraped as number) ?? 0,
+    llm_cost_usd: (metrics.llm_cost_usd as number) ?? 0,
+    tool_cost_usd: (metrics.tool_cost_usd as number) ?? 0,
+    total_cost_usd: (metrics.total_cost_usd as number) ?? 0,
   };
 }
