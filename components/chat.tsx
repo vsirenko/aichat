@@ -19,6 +19,7 @@ import {
 import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useAuth } from "@/hooks/use-auth";
 import { useAutoResume } from "@/hooks/use-auto-resume";
+import { useHistory } from "@/hooks/use-history";
 import { ChatSDKError } from "@/lib/errors";
 import { getSession } from "@/lib/session-manager";
 import type { Attachment, ChatMessage } from "@/lib/types";
@@ -27,6 +28,7 @@ import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 import { Artifact } from "./artifact";
 import { BudgetConfirmationModal } from "./budget-confirmation-modal";
 import { useDataStream } from "./data-stream-provider";
+import { HistoryDrawer } from "./history-drawer";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { ODAIContextProvider, useODAIContext } from "./odai-context";
@@ -54,6 +56,10 @@ function ChatInner({
   const odaiContext = useODAIContext();
   const auth = useAuth();
   const [authChecked, setAuthChecked] = useState(false);
+  const { history, addHistoryEntry, clearHistory, removeEntry } = useHistory();
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [lastUserQuery, setLastUserQuery] = useState<string>("");
+  const hasCompletedPhasesRef = useRef(false);
 
   useEffect(() => {
     if (!authChecked) {
@@ -192,8 +198,24 @@ function ChatInner({
     if (status === "submitted") {
       console.log("[Chat] Resetting ODAI context");
       odaiContext.reset();
+      hasCompletedPhasesRef.current = false;
     }
   }, [status, odaiContext.reset]);
+
+  // Separate effect for saving to history
+  useEffect(() => {
+    if (status === "ready" && !hasCompletedPhasesRef.current && odaiContext.phases.some(p => p.status === "completed")) {
+      console.log("[Chat] Saving completed phases to history");
+      hasCompletedPhasesRef.current = true;
+      addHistoryEntry({
+        phases: [...odaiContext.phases],
+        models: [...odaiContext.models],
+        webSources: [...odaiContext.webSources],
+        webRefreshDetails: odaiContext.webRefreshDetails,
+        userQuery: lastUserQuery,
+      });
+    }
+  }, [status]);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const handlersRef = useRef({
@@ -337,6 +359,7 @@ function ChatInner({
 
   useEffect(() => {
     if (query && !hasAppendedQuery) {
+      setLastUserQuery(query);
       sendMessage({
         role: "user" as const,
         parts: [{ type: "text", text: query }],
@@ -360,7 +383,7 @@ function ChatInner({
   return (
     <>
       <div className="overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col overflow-visible bg-background">
-        <ChatHeader />
+        <ChatHeader onHistoryClick={() => setShowHistoryDrawer(true)} />
 
         <Messages
           chatId={id}
@@ -397,6 +420,7 @@ function ChatInner({
               messages={messages}
               onModelChange={setCurrentModelId}
               onParametersChange={handleParametersChange}
+              onQuerySubmit={setLastUserQuery}
               selectedModelId={currentModelId}
               selectedVisibilityType="private"
               sendMessage={sendMessage}
@@ -477,6 +501,14 @@ function ChatInner({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <HistoryDrawer
+        history={history}
+        onClearHistory={clearHistory}
+        onOpenChange={setShowHistoryDrawer}
+        onRemoveEntry={removeEntry}
+        open={showHistoryDrawer}
+      />
     </>
   );
 }

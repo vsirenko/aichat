@@ -203,9 +203,9 @@ function PhaseProgressPanelContent() {
                 className={cn(
                   "h-0.5 w-6 transition-colors duration-300 sm:w-8",
                   phase.status === "completed"
-                    ? "bg-green-500/50"
+                    ? "bg-[#D6FFA6]/50"
                     : phase.status === "running"
-                      ? "bg-blue-500/50"
+                      ? "bg-[#3B43FE]/50"
                       : "bg-border/30"
                 )}
               />

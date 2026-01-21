@@ -49,7 +49,7 @@ export const ContextIcon = ({ percent }: ContextIconProps) => {
         fill="none"
         opacity="0.25"
         r={radius}
-        stroke="currentColor"
+        stroke="#DCDCDC"
         strokeWidth={ICON_STROKE_WIDTH}
       />
       <circle
@@ -58,7 +58,7 @@ export const ContextIcon = ({ percent }: ContextIconProps) => {
         fill="none"
         opacity="0.7"
         r={radius}
-        stroke="currentColor"
+        stroke="#3B43FE"
         strokeDasharray={`${circumference} ${circumference}`}
         strokeDashoffset={dashOffset}
         strokeLinecap="round"

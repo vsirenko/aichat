@@ -68,6 +68,7 @@ function PureMultimodalInput({
   skipLlmJudge,
   maxSamplesPerModel,
   onParametersChange,
+  onQuerySubmit,
 }: {
   chatId: string;
   input: string;
@@ -96,6 +97,7 @@ function PureMultimodalInput({
     skipLlmJudge?: boolean;
     maxSamplesPerModel?: number;
   }) => void;
+  onQuerySubmit?: (query: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -146,6 +148,12 @@ function PureMultimodalInput({
   const submitForm = useCallback(() => {
     window.history.pushState({}, "", `/chat/${chatId}`);
 
+    // Capture the query before clearing
+    const queryText = input.trim();
+    if (onQuerySubmit && queryText) {
+      onQuerySubmit(queryText);
+    }
+
     sendMessage({
       role: "user",
       parts: [
@@ -180,6 +188,7 @@ function PureMultimodalInput({
     width,
     chatId,
     resetHeight,
+    onQuerySubmit,
   ]);
 
   const uploadFile = useCallback(async (file: File) => {

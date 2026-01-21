@@ -1,11 +1,16 @@
 "use client";
 
+import { History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { ODAILogo, PlusIcon } from "./icons";
 
-function PureChatHeader() {
+interface ChatHeaderProps {
+  onHistoryClick?: () => void;
+}
+
+function PureChatHeader({ onHistoryClick }: ChatHeaderProps) {
   const router = useRouter();
 
   return (
@@ -16,17 +21,30 @@ function PureChatHeader() {
       </div>
 
       {}
-      <Button
-        className="ml-auto h-9 gap-2 rounded-full px-4 text-white hover:opacity-90"
-        style={{ background: "#3B43FE" }}
-        onClick={() => {
-          router.push("/");
-          router.refresh();
-        }}
-      >
-        <PlusIcon />
-        <span>New Chat</span>
-      </Button>
+      <div className="ml-auto flex items-center gap-2">
+        {onHistoryClick && (
+          <Button
+            className="h-9 gap-2 rounded-full px-4 text-white hover:opacity-90"
+            style={{ background: "#3B43FE" }}
+            onClick={onHistoryClick}
+            title="View thinking history"
+          >
+            <History className="h-4 w-4" />
+            <span>History</span>
+          </Button>
+        )}
+        <Button
+          className="h-9 gap-2 rounded-full px-4 text-white hover:opacity-90"
+          style={{ background: "#3B43FE" }}
+          onClick={() => {
+            router.push("/");
+            router.refresh();
+          }}
+        >
+          <PlusIcon />
+          <span>New Chat</span>
+        </Button>
+      </div>
     </header>
   );
 }

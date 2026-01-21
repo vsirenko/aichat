@@ -77,8 +77,8 @@ function PureWaveProgressDisplay({ models }: WaveProgressDisplayProps) {
                 <span
                   className={cn(
                     "font-medium text-xs",
-                    isComplete && "text-green-600 dark:text-green-500",
-                    hasRunning && "text-blue-600 dark:text-blue-400",
+                    isComplete && "text-[#74885C] dark:text-[#D6FFA6]",
+                    hasRunning && "text-[#3B43FE] dark:text-[#989CF9]",
                     !isComplete && !hasRunning && "text-muted-foreground"
                   )}
                 >
@@ -99,9 +99,9 @@ function PureWaveProgressDisplay({ models }: WaveProgressDisplayProps) {
                   className={cn(
                     "flex-1 transition-all duration-500",
                     model.status === "completed" &&
-                      "bg-green-600 dark:bg-green-500",
+                      "bg-[#74885C] dark:bg-[#D6FFA6]",
                     model.status === "running" &&
-                      "animate-pulse bg-blue-600 dark:bg-blue-500",
+                      "animate-pulse bg-[#3B43FE] dark:bg-[#989CF9]",
                     model.status === "failed" && "bg-red-600 dark:bg-red-500",
                     model.status === "pending" && "bg-transparent"
                   )}
