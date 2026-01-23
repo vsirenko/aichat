@@ -22,6 +22,7 @@ export const postRequestBodySchema = z.object({
   skip_safety_check: z.boolean().optional().default(false),
   skip_llm_enhancement: z.boolean().optional().default(false),
   skip_llm_judge: z.boolean().optional().default(false),
+  use_oss_only: z.boolean().optional().default(false),
   max_samples_per_model: z.number().min(1).max(10).optional().default(3),
 });
 

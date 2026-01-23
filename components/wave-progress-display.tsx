@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import type { ModelExecution } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { formatWaveExecution } from "@/lib/formatters";
 
 interface WaveProgressDisplayProps {
   models: ModelExecution[];
@@ -70,26 +71,16 @@ function PureWaveProgressDisplay({ models }: WaveProgressDisplayProps) {
         return (
           <div className="space-y-2" key={wave.waveNumber}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">
-                  Wave {wave.waveNumber}:
-                </span>
-                <span
-                  className={cn(
-                    "font-medium text-xs",
-                    isComplete && "text-[#74885C] dark:text-[#D6FFA6]",
-                    hasRunning && "text-[#3B43FE] dark:text-[#989CF9]",
-                    !isComplete && !hasRunning && "text-muted-foreground"
-                  )}
-                >
-                  {wave.completed}/{wave.total} complete
-                </span>
-              </div>
-              {wave.avgDuration !== undefined && (
-                <span className="font-medium text-muted-foreground text-xs">
-                  ({(wave.avgDuration / 1000).toFixed(1)}s)
-                </span>
-              )}
+              <span
+                className={cn(
+                  "font-medium text-sm",
+                  isComplete && "text-[#74885C] dark:text-[#D6FFA6]",
+                  hasRunning && "text-[#3B43FE] dark:text-[#989CF9]",
+                  !isComplete && !hasRunning && "text-muted-foreground"
+                )}
+              >
+                {formatWaveExecution(wave.waveNumber, wave.completed, wave.total, wave.avgDuration)}
+              </span>
             </div>
 
             {}

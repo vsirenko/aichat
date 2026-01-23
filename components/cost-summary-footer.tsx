@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import type { CostSummaryEvent } from "@/lib/ai/odai-types";
+import { formatCost, formatTokens } from "@/lib/formatters";
 
 interface CostSummaryFooterProps {
   summary: CostSummaryEvent;
@@ -9,17 +10,6 @@ interface CostSummaryFooterProps {
 
 function PureCostSummaryFooter({ summary }: CostSummaryFooterProps) {
   console.log("[CostSummaryFooter] Rendering with summary:", summary);
-  
-  const formatCost = (cost: number) => {
-    if (cost >= 0.01) {
-      return `$${cost.toFixed(4)}`;
-    }
-    return `$${cost.toFixed(6)}`;
-  };
-
-  const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString();
-  };
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-muted-foreground text-xs">
@@ -27,7 +17,7 @@ function PureCostSummaryFooter({ summary }: CostSummaryFooterProps) {
         {formatCost(summary.total_cost_usd)}
       </span>
       <span>·</span>
-      <span>{formatTokens(summary.total_tokens)} tokens</span>
+      <span>{formatTokens(summary.total_tokens)}</span>
       <span className="text-muted-foreground/60">
         ({formatTokens(summary.input_tokens)} in / {formatTokens(summary.output_tokens)} out
         {summary.thinking_tokens > 0 && (

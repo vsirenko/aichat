@@ -11,6 +11,16 @@ import {
   getLlmCallCounts,
   getPhaseMetrics 
 } from "@/lib/ai/phase-utils";
+import { 
+  formatBoolean, 
+  formatStatus, 
+  formatExecutionMode, 
+  formatTokens, 
+  formatCost, 
+  formatDuration,
+  formatDomain,
+  formatEnhancement
+} from "@/lib/formatters";
 import { PhaseMetricsDisplay } from "./phase-metrics-display";
 import { ResponsiveSheet } from "./ui/responsive-sheet";
 
@@ -27,8 +37,8 @@ function PurePhaseDetailModal({
 }: PhaseDetailModalProps) {
   if (!phase) return null;
 
-  const durationSeconds = phase.duration_ms
-    ? (phase.duration_ms / 1000).toFixed(2)
+  const duration = phase.duration_ms
+    ? formatDuration(phase.duration_ms)
     : "N/A";
 
   return (
@@ -41,10 +51,10 @@ function PurePhaseDetailModal({
       <div className="space-y-6 py-4">
           {/* Common Fields */}
           <div className="grid grid-cols-2 gap-4">
-            <DetailItem label="Duration" value={`${durationSeconds}s`} />
+            <DetailItem label="Duration" value={duration} />
             <DetailItem
               label="Success"
-              value={phase.status === "completed" ? "true" : "false"}
+              value={formatBoolean(phase.status === "completed")}
               valueClassName={
                 phase.status === "completed"
                   ? "text-green-600 dark:text-green-500"
@@ -107,6 +117,7 @@ function SafetyPhaseDetails({ details }: { details?: Record<string, unknown> }) 
   
   const decision = (safety?.decision as string) ?? (details.decision as string) ?? "N/A";
   const isOdaiRelated = (odai?.is_odai_related as boolean) ?? false;
+  const queryEnhanced = (details.query_enhanced as boolean) ?? undefined;
 
   return (
     <div className="space-y-4">
@@ -115,8 +126,8 @@ function SafetyPhaseDetails({ details }: { details?: Record<string, unknown> }) 
       <h3 className="font-semibold text-sm">Safety Classification</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
-          label="Decision"
-          value={decision}
+          label="Safety Decision"
+          value={formatStatus(decision)}
           valueClassName={
             decision === "allow"
               ? "text-green-600 dark:text-green-500"
@@ -125,13 +136,24 @@ function SafetyPhaseDetails({ details }: { details?: Record<string, unknown> }) 
         />
         <DetailItem
           label="ODAI Query"
-          value={isOdaiRelated ? "Yes" : "No"}
+          value={formatBoolean(isOdaiRelated)}
           valueClassName={
             isOdaiRelated
               ? "text-blue-600 dark:text-blue-400"
               : "text-muted-foreground"
           }
         />
+        {queryEnhanced !== undefined && (
+          <DetailItem
+            label="Query Enhanced"
+            value={formatBoolean(queryEnhanced)}
+            valueClassName={
+              queryEnhanced
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-muted-foreground"
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -168,7 +190,7 @@ function PreAnalysisPhaseDetails({
         />
         <DetailItem
           label="Primary Domain"
-          value={primaryDomain}
+          value={formatDomain(primaryDomain)}
         />
         <DetailItem
           label="URLs Extracted"
@@ -176,7 +198,7 @@ function PreAnalysisPhaseDetails({
         />
         <DetailItem
           label="Web Search Required"
-          value={webSearchRequired !== undefined ? String(webSearchRequired) : "N/A"}
+          value={formatBoolean(webSearchRequired ?? false)}
           valueClassName={
             webSearchRequired
               ? "text-blue-600 dark:text-blue-400"
@@ -195,7 +217,7 @@ function PreAnalysisPhaseDetails({
                 key={i}
                 className="rounded-full bg-muted px-2 py-1 text-xs"
               >
-                {domain}
+                {formatDomain(domain)}
               </span>
             ))}
           </div>
@@ -216,38 +238,44 @@ function BudgetPhaseDetails({ details }: { details?: Record<string, unknown> }) 
   const reasoningBudget = budget?.reasoning_budget as number | undefined;
   const sampleCount = budget?.sample_count as number | undefined;
   const modelList = getModelList(details);
+  const executionMode = (decomposition?.execution_mode as string) ?? (details.execution_mode as string);
+  const subTaskCount = (decomposition?.sub_task_count as number) ?? (decomposition?.subtasks as number);
 
   return (
     <div className="space-y-4">
       {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
       
-      <h3 className="font-semibold text-sm">Budget Allocation</h3>
+      <h3 className="font-semibold text-sm">Compute Allocation</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
           label="Estimated Cost"
-          value={
-            estimatedCost !== undefined
-              ? `$${estimatedCost.toFixed(4)}`
-              : "N/A"
-          }
+          value={estimatedCost !== undefined ? formatCost(estimatedCost) : "N/A"}
           valueClassName="text-green-600 dark:text-green-500"
         />
         <DetailItem
           label="Reasoning Budget"
-          value={
-            reasoningBudget !== undefined
-              ? `${reasoningBudget.toLocaleString()} tokens`
-              : "N/A"
-          }
+          value={reasoningBudget !== undefined ? formatTokens(reasoningBudget) : "N/A"}
         />
         <DetailItem
           label="Sample Count"
           value={sampleCount !== undefined ? sampleCount : "N/A"}
         />
         <DetailItem
-          label="Models Selected"
+          label="Model Count"
           value={modelList.length}
         />
+        {executionMode && (
+          <DetailItem
+            label="Execution Mode"
+            value={formatExecutionMode(executionMode)}
+          />
+        )}
+        {subTaskCount !== undefined && subTaskCount > 0 && (
+          <DetailItem
+            label="Sub-tasks"
+            value={subTaskCount}
+          />
+        )}
       </div>
       {modelList.length > 0 && (
         <div className="space-y-1">
@@ -293,7 +321,7 @@ function PromptsPhaseDetails({
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
           label="Execution Mode"
-          value={executionMode}
+          value={formatExecutionMode(executionMode)}
         />
         <DetailItem
           label="Prompts Generated"
@@ -301,7 +329,7 @@ function PromptsPhaseDetails({
         />
         <DetailItem
           label="LLM Enhancement"
-          value={llmEnhancementApplied ? "Applied" : "Not Applied"}
+          value={formatEnhancement(llmEnhancementApplied)}
           valueClassName={
             llmEnhancementApplied
               ? "text-blue-600 dark:text-blue-400"
@@ -310,7 +338,7 @@ function PromptsPhaseDetails({
         />
         {llmEnhancementModel && (
           <DetailItem
-            label="Enhancement Model"
+            label="Enhancer"
             value={llmEnhancementModel}
           />
         )}
@@ -344,7 +372,7 @@ function InferencePhaseDetails({
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
           label="Execution Mode"
-          value={executionMode}
+          value={formatExecutionMode(executionMode)}
         />
         <DetailItem
           label="Successful Calls"
@@ -358,7 +386,7 @@ function InferencePhaseDetails({
         />
         <DetailItem
           label="Multi-Sampling"
-          value={multiSampling ? "Yes" : "No"}
+          value={formatBoolean(multiSampling)}
           valueClassName={
             multiSampling
               ? "text-blue-600 dark:text-blue-400"
@@ -404,26 +432,26 @@ function SelectionPhaseDetails({
     <div className="space-y-4">
       {metrics && <PhaseMetricsDisplay metrics={metrics} compact />}
       
-      <h3 className="font-semibold text-sm">Response Selection</h3>
+      <h3 className="font-semibold text-sm">Sample Selection</h3>
       <div className="grid grid-cols-2 gap-4">
         <DetailItem
-          label="Samples Ranked"
+          label="Responses Evaluated"
           value={samplesRanked}
         />
         <DetailItem
-          label="Winner Model"
+          label="Selected Model"
           value={winnerModel}
           valueClassName="text-blue-600 dark:text-blue-400"
         />
         {rankingScore !== undefined && (
           <DetailItem
-            label="Ranking Score"
+            label="Quality Score"
             value={rankingScore.toFixed(2)}
           />
         )}
         <DetailItem
           label="Aggregation"
-          value={aggregationPerformed ? "Yes" : "No"}
+          value={formatBoolean(aggregationPerformed)}
           valueClassName={
             aggregationPerformed
               ? "text-green-600 dark:text-green-500"

@@ -267,12 +267,12 @@ function PhaseProgressPanelContent() {
       </ResponsiveSheet>
 
       <ResponsiveSheet
-        description="Multi-model parallel inference progress"
+        description="Detailed phase execution summary"
         onOpenChange={(open) => {
           if (!open) setExpandedPhase(null);
         }}
         open={Boolean(expandedPhase === "inference" && canShowWaveProgress)}
-        title="Model Execution"
+        title="Phase 4: Parallel Inference"
       >
         <div className="space-y-6">
           {webRefreshDetails && (

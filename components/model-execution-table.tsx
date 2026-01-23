@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, Loader2, XCircle } from "lucide-react";
 import { memo } from "react";
 import type { ModelExecution } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { formatProvider, formatTokens, formatDuration, formatStatus } from "@/lib/formatters";
 
 interface ModelExecutionTableProps {
   models: ModelExecution[];
@@ -28,17 +29,10 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
     failed: "text-red-600 dark:text-red-500",
   };
 
-  const statusLabels = {
-    pending: "Pending",
-    running: "Running",
-    completed: "Complete",
-    failed: "Failed",
-  };
-
   return (
     <div className="space-y-3">
       <div className="font-medium text-muted-foreground text-sm">
-        Model Execution
+        Model Details
       </div>
 
       <div className="overflow-hidden rounded-lg border">
@@ -63,7 +57,7 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
             {models.map((model, index) => {
               const Icon = StatusIcon[model.status];
               const colorClass = statusColors[model.status];
-              const label = statusLabels[model.status];
+              const label = formatStatus(model.status);
 
               return (
                 <tr
@@ -76,7 +70,7 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
                         {model.model_id}
                       </span>
                       <span className="text-muted-foreground text-xs">
-                        {model.provider}
+                        {formatProvider(model.provider)}
                       </span>
                     </div>
                   </td>
@@ -97,7 +91,7 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
                   <td className="px-4 py-3">
                     <span className="text-sm">
                       {model.tokens_used
-                        ? model.tokens_used.toLocaleString()
+                        ? formatTokens(model.tokens_used)
                         : model.status === "running"
                           ? "..."
                           : "—"}
@@ -106,7 +100,7 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
                   <td className="px-4 py-3">
                     <span className="text-sm">
                       {model.duration_ms
-                        ? `${(model.duration_ms / 1000).toFixed(1)}s`
+                        ? formatDuration(model.duration_ms)
                         : model.status === "running"
                           ? "..."
                           : "—"}
@@ -132,9 +126,7 @@ function PureModelExecutionTable({ models }: ModelExecutionTableProps) {
             <>
               <span className="text-muted-foreground">Total Tokens:</span>
               <span className="font-medium">
-                {models
-                  .reduce((sum, m) => sum + (m.tokens_used || 0), 0)
-                  .toLocaleString()}
+                {formatTokens(models.reduce((sum, m) => sum + (m.tokens_used || 0), 0))}
               </span>
             </>
           )}

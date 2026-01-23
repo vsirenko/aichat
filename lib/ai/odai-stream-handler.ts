@@ -99,13 +99,13 @@ export function initializePhases(): PhaseState[] {
     {
       phase: "pre_analysis",
       phase_number: 1,
-      phase_name: "Pre-Analysis",
+      phase_name: "Parallel Pre-Analysis",
       status: "pending",
     },
     {
       phase: "budget_allocation",
       phase_number: 2,
-      phase_name: "Budget Allocation",
+      phase_name: "Compute Allocation",
       status: "pending",
     },
     {
@@ -117,13 +117,13 @@ export function initializePhases(): PhaseState[] {
     {
       phase: "inference",
       phase_number: 4,
-      phase_name: "Multi-Model Inference",
+      phase_name: "Parallel Inference",
       status: "pending",
     },
     {
       phase: "selection",
       phase_number: 5,
-      phase_name: "Response Selection",
+      phase_name: "Sample Selection",
       status: "pending",
     },
   ];

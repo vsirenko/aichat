@@ -4,6 +4,7 @@ import { memo } from "react";
 import type { PhaseMetrics } from "@/lib/ai/odai-types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatCost, formatTokens, formatDuration } from "@/lib/formatters";
 
 interface PhaseMetricsDisplayProps {
   metrics: PhaseMetrics;
@@ -16,11 +17,11 @@ function PurePhaseMetricsDisplay({ metrics, compact = false }: PhaseMetricsDispl
       <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
         <h4 className="font-semibold text-sm">Metrics</h4>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <MetricItem label="Total Cost" value={`$${(metrics.total_cost_usd ?? 0).toFixed(4)}`} />
-          <MetricItem label="Total Tokens" value={(metrics.total_input_tokens ?? 0) + (metrics.total_output_tokens ?? 0)} />
-          <MetricItem label="LLM Calls" value={`${metrics.successful_llm_calls ?? 0}/${metrics.total_llm_calls ?? 0}`} />
+          <MetricItem label="Total Cost" value={formatCost(metrics.total_cost_usd ?? 0)} />
+          <MetricItem label="Total Tokens" value={formatTokens((metrics.total_input_tokens ?? 0) + (metrics.total_output_tokens ?? 0))} />
+          <MetricItem label="API Calls" value={`${metrics.successful_llm_calls ?? 0}/${metrics.total_llm_calls ?? 0}`} />
           {(metrics.total_thinking_tokens ?? 0) > 0 && (
-            <MetricItem label="Thinking Tokens" value={metrics.total_thinking_tokens ?? 0} />
+            <MetricItem label="Thinking Tokens" value={formatTokens(metrics.total_thinking_tokens ?? 0)} />
           )}
         </div>
       </div>
@@ -31,20 +32,35 @@ function PurePhaseMetricsDisplay({ metrics, compact = false }: PhaseMetricsDispl
     <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
       <h4 className="font-semibold text-sm">Phase Metrics</h4>
 
+      {/* Metrics - Standardized Order: Total Cost, Total Tokens, API Calls */}
+      <div className="space-y-2">
+        <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          Summary
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <MetricItem 
+            label="Total Cost" 
+            value={formatCost(metrics.total_cost_usd ?? 0)}
+            valueClassName="font-bold text-blue-600 dark:text-blue-400"
+          />
+          <MetricItem 
+            label="Total Tokens" 
+            value={formatTokens((metrics.total_input_tokens ?? 0) + (metrics.total_output_tokens ?? 0) + (metrics.total_thinking_tokens ?? 0))}
+            valueClassName="font-bold"
+          />
+          <MetricItem label="API Calls" value={`${metrics.successful_llm_calls ?? 0}/${metrics.total_llm_calls ?? 0}`} />
+          <MetricItem label="Duration" value={formatDuration(metrics.duration_ms ?? 0)} />
+        </div>
+      </div>
+
       {/* Cost Breakdown */}
       <div className="space-y-2">
         <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
           Cost Breakdown
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <MetricItem label="LLM Cost" value={`$${(metrics.llm_cost_usd ?? 0).toFixed(4)}`} />
-          <MetricItem label="Tool Cost" value={`$${(metrics.tool_cost_usd ?? 0).toFixed(4)}`} />
-          <MetricItem 
-            label="Total Cost" 
-            value={`$${(metrics.total_cost_usd ?? 0).toFixed(4)}`}
-            valueClassName="font-bold text-blue-600 dark:text-blue-400"
-          />
-          <MetricItem label="Duration" value={`${((metrics.duration_ms ?? 0) / 1000).toFixed(2)}s`} />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <MetricItem label="LLM Cost" value={formatCost(metrics.llm_cost_usd ?? 0)} />
+          <MetricItem label="Tool Cost" value={formatCost(metrics.tool_cost_usd ?? 0)} />
         </div>
       </div>
 
@@ -54,16 +70,11 @@ function PurePhaseMetricsDisplay({ metrics, compact = false }: PhaseMetricsDispl
           Token Usage
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <MetricItem label="Input Tokens" value={(metrics.total_input_tokens ?? 0).toLocaleString()} />
-          <MetricItem label="Output Tokens" value={(metrics.total_output_tokens ?? 0).toLocaleString()} />
+          <MetricItem label="Input Tokens" value={formatTokens(metrics.total_input_tokens ?? 0)} />
+          <MetricItem label="Output Tokens" value={formatTokens(metrics.total_output_tokens ?? 0)} />
           {(metrics.total_thinking_tokens ?? 0) > 0 && (
-            <MetricItem label="Thinking Tokens" value={(metrics.total_thinking_tokens ?? 0).toLocaleString()} />
+            <MetricItem label="Thinking Tokens" value={formatTokens(metrics.total_thinking_tokens ?? 0)} />
           )}
-          <MetricItem 
-            label="Total Tokens" 
-            value={((metrics.total_input_tokens ?? 0) + (metrics.total_output_tokens ?? 0) + (metrics.total_thinking_tokens ?? 0)).toLocaleString()}
-            valueClassName="font-bold"
-          />
         </div>
       </div>
 

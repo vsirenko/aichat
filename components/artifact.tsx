@@ -90,6 +90,7 @@ function PureArtifact({
     skipSafetyCheck: false,
     skipLlmEnhancement: false,
     skipLlmJudge: false,
+    useOssOnly: false,
     maxSamplesPerModel: 3,
   });
 
@@ -99,6 +100,7 @@ function PureArtifact({
       skipSafetyCheck?: boolean;
       skipLlmEnhancement?: boolean;
       skipLlmJudge?: boolean;
+      useOssOnly?: boolean;
       maxSamplesPerModel?: number;
     }) => {
       setOdaiParams((prev) => ({ ...prev, ...params }));
@@ -360,6 +362,7 @@ function PureArtifact({
                     skipLlmEnhancement={odaiParams.skipLlmEnhancement}
                     skipLlmJudge={odaiParams.skipLlmJudge}
                     skipSafetyCheck={odaiParams.skipSafetyCheck}
+                    useOssOnly={odaiParams.useOssOnly}
                     status={status}
                     stop={stop}
                   />

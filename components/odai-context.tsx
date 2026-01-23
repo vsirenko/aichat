@@ -23,6 +23,7 @@ import type {
   WebSearchEvent,
 } from "@/lib/ai/odai-types";
 import type { ModelExecution, PhaseState, WebScrapedSource, WebSource } from "@/lib/types";
+import { initializePhases } from "@/lib/ai/odai-stream-handler";
 
 interface ODAIContextValue {
   phases: PhaseState[];
@@ -67,47 +68,8 @@ interface ODAIContextValue {
 
 const ODAIContext = createContext<ODAIContextValue | null>(null);
 
-const INITIAL_PHASES: PhaseState[] = [
-  {
-    phase: "safety",
-    phase_number: 0,
-    phase_name: "Safety Check",
-    status: "pending",
-  },
-  {
-    phase: "pre_analysis",
-    phase_number: 1,
-    phase_name: "Pre-Analysis",
-    status: "pending",
-  },
-  {
-    phase: "budget_allocation",
-    phase_number: 2,
-    phase_name: "Budget Allocation",
-    status: "pending",
-  },
-  {
-    phase: "prompt_engineering",
-    phase_number: 3,
-    phase_name: "Prompt Engineering",
-    status: "pending",
-  },
-  {
-    phase: "inference",
-    phase_number: 4,
-    phase_name: "Multi-Model Inference",
-    status: "pending",
-  },
-  {
-    phase: "selection",
-    phase_number: 5,
-    phase_name: "Response Selection",
-    status: "pending",
-  },
-];
-
 export function ODAIContextProvider({ children }: { children: ReactNode }) {
-  const [phases, setPhases] = useState<PhaseState[]>(INITIAL_PHASES);
+  const [phases, setPhases] = useState<PhaseState[]>(() => initializePhases());
   const [models, setModels] = useState<ModelExecution[]>([]);
   const [webSources, setWebSources] = useState<WebSource[]>([]);
   const [webScrapedSources, setWebScrapedSources] = useState<WebScrapedSource[]>([]);
@@ -313,7 +275,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
-    setPhases(INITIAL_PHASES);
+    setPhases(initializePhases());
     setModels([]);
     setWebSources([]);
     setWebScrapedSources([]);
@@ -322,13 +284,6 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     setCostSummary(null);
     setBudgetConfirmation(null);
     setErrorEvents([]);
-    
-    // Immediately start phase 0 (safety check) to show user it's working
-    setTimeout(() => {
-      setPhases(prev => prev.map((p, idx) => 
-        idx === 0 ? { ...p, status: "running" as const, progress_percent: 0 } : p
-      ));
-    }, 100);
   }, []);
 
   const value = useMemo<ODAIContextValue>(
