@@ -66,6 +66,7 @@ function PureMultimodalInput({
   skipSafetyCheck,
   skipLlmEnhancement,
   skipLlmJudge,
+  useOssOnly,
   maxSamplesPerModel,
   onParametersChange,
   onQuerySubmit,
@@ -89,12 +90,14 @@ function PureMultimodalInput({
   skipSafetyCheck: boolean;
   skipLlmEnhancement: boolean;
   skipLlmJudge: boolean;
+  useOssOnly: boolean;
   maxSamplesPerModel: number;
   onParametersChange: (params: {
     includePhaseEvents?: boolean;
     skipSafetyCheck?: boolean;
     skipLlmEnhancement?: boolean;
     skipLlmJudge?: boolean;
+    useOssOnly?: boolean;
     maxSamplesPerModel?: number;
   }) => void;
   onQuerySubmit?: (query: string) => void;
@@ -390,6 +393,7 @@ function PureMultimodalInput({
               skipLlmEnhancement={skipLlmEnhancement}
               skipLlmJudge={skipLlmJudge}
               skipSafetyCheck={skipSafetyCheck}
+              useOssOnly={useOssOnly}
             />
             <ModelSelectorCompact
               onModelChange={onModelChange}
@@ -446,6 +450,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.skipLlmJudge !== nextProps.skipLlmJudge) {
+      return false;
+    }
+    if (prevProps.useOssOnly !== nextProps.useOssOnly) {
       return false;
     }
     if (prevProps.maxSamplesPerModel !== nextProps.maxSamplesPerModel) {

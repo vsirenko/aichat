@@ -11,6 +11,7 @@ import {
 import type {
   BudgetConfirmationRequiredEvent,
   CostEstimateEvent,
+  CostSummaryEvent,
   ErrorEvent,
   ModelActiveEvent,
   ModelCompleteEvent,
@@ -51,6 +52,8 @@ interface ODAIContextValue {
 
   costEstimate: CostEstimateEvent | null;
   setCostEstimate: (estimate: CostEstimateEvent | null) => void;
+  costSummary: CostSummaryEvent | null;
+  setCostSummary: (summary: CostSummaryEvent | null) => void;
   budgetConfirmation: BudgetConfirmationRequiredEvent | null;
   setBudgetConfirmation: (
     confirmation: BudgetConfirmationRequiredEvent | null
@@ -113,6 +116,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   const [costEstimate, setCostEstimate] = useState<CostEstimateEvent | null>(
     null
   );
+  const [costSummary, setCostSummary] = useState<CostSummaryEvent | null>(null);
   const [budgetConfirmation, setBudgetConfirmation] =
     useState<BudgetConfirmationRequiredEvent | null>(null);
   const [errorEvents, setErrorEvents] = useState<ErrorEvent[]>([]);
@@ -315,6 +319,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     setWebScrapedSources([]);
     setWebRefreshDetails(null);
     setCostEstimate(null);
+    setCostSummary(null);
     setBudgetConfirmation(null);
     setErrorEvents([]);
     
@@ -348,6 +353,8 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       setWebRefreshDetails,
       costEstimate,
       setCostEstimate,
+      costSummary,
+      setCostSummary,
       budgetConfirmation,
       setBudgetConfirmation,
       errorEvents,
@@ -371,6 +378,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       handleWebScrape,
       webRefreshDetails,
       costEstimate,
+      costSummary,
       budgetConfirmation,
       errorEvents,
       addErrorEvent,

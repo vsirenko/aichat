@@ -55,6 +55,7 @@ function PureMessages({
           {messages.map((message, index) => (
             <PreviewMessage
               chatId={chatId}
+              isLastMessage={index === messages.length - 1}
               isLoading={
                 status === "streaming" && messages.length - 1 === index
               }

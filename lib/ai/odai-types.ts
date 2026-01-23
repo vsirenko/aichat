@@ -10,6 +10,7 @@ export type ODAIEventType =
   | "web.search"
   | "web.scrape"
   | "cost.estimate"
+  | "cost.summary"
   | "budget.confirmation_required"
   | "budget.confirmation_response"
   | "error"
@@ -72,6 +73,7 @@ export interface ChatCompletionRequest {
   skip_llm_enhancement?: boolean;
   skip_llm_judge?: boolean;
   max_samples_per_model?: number;
+  use_oss_only?: boolean;
 }
 
 export interface PhaseStartEvent {
@@ -184,6 +186,16 @@ export interface CostEstimateEvent {
   timestamp: string;
 }
 
+export interface CostSummaryEvent {
+  total_cost_usd: number;
+  llm_cost_usd: number;
+  tool_cost_usd: number;
+  total_tokens: number;
+  input_tokens: number;
+  output_tokens: number;
+  thinking_tokens: number;
+}
+
 export interface MessageStartEvent {
   id: string;
   object: "chat.completion.chunk";
@@ -251,6 +263,7 @@ export interface SSEEvent {
     | WebSearchEvent
     | WebScrapeEvent
     | CostEstimateEvent
+    | CostSummaryEvent
     | MessageStartEvent
     | MessageDeltaEvent
     | MessageCompleteEvent

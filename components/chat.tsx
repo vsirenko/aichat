@@ -93,6 +93,7 @@ function ChatInner({
     skipSafetyCheck: false,
     skipLlmEnhancement: false,
     skipLlmJudge: false,
+    useOssOnly: false,
     maxSamplesPerModel: 3,
   });
   const odaiParamsRef = useRef(odaiParams);
@@ -103,6 +104,7 @@ function ChatInner({
       skipSafetyCheck?: boolean;
       skipLlmEnhancement?: boolean;
       skipLlmJudge?: boolean;
+      useOssOnly?: boolean;
       maxSamplesPerModel?: number;
     }) => {
       setOdaiParams((prev) => ({ ...prev, ...params }));
@@ -142,6 +144,7 @@ function ChatInner({
           skip_safety_check: odaiParamsRef.current.skipSafetyCheck,
           skip_llm_enhancement: odaiParamsRef.current.skipLlmEnhancement,
           skip_llm_judge: odaiParamsRef.current.skipLlmJudge,
+          use_oss_only: odaiParamsRef.current.useOssOnly,
           max_samples_per_model: odaiParamsRef.current.maxSamplesPerModel,
         };
         console.log("[Chat] Sending chat request with sessionId:", id);
@@ -227,6 +230,7 @@ function ChatInner({
     handleWebSearch: odaiContext.handleWebSearch,
     handleWebScrape: odaiContext.handleWebScrape,
     setCostEstimate: odaiContext.setCostEstimate,
+    setCostSummary: odaiContext.setCostSummary,
     setBudgetConfirmation: odaiContext.setBudgetConfirmation,
     addErrorEvent: odaiContext.addErrorEvent,
   });
@@ -241,6 +245,7 @@ function ChatInner({
       handleWebSearch: odaiContext.handleWebSearch,
       handleWebScrape: odaiContext.handleWebScrape,
       setCostEstimate: odaiContext.setCostEstimate,
+      setCostSummary: odaiContext.setCostSummary,
       setBudgetConfirmation: odaiContext.setBudgetConfirmation,
       addErrorEvent: odaiContext.addErrorEvent,
     };
@@ -283,6 +288,11 @@ function ChatInner({
           }
           
           console.log(`[ODAI SSE] Processing ${eventType}:`, eventData);
+          
+          // DEBUG: Log if this is a cost-related event
+          if (eventType.includes("cost")) {
+            console.log(`[ODAI SSE] 🔥 COST EVENT DETECTED: ${eventType}`, eventData);
+          }
 
           switch (eventType) {
             case "phase.start":
@@ -316,6 +326,12 @@ function ChatInner({
             case "cost.estimate":
               console.log(`[ODAI SSE] Cost Estimate: $${eventData.estimated_cost_usd.toFixed(4)} - ${eventData.sample_count} samples`);
               handlersRef.current.setCostEstimate(eventData);
+              break;
+            case "cost.summary":
+              console.log(`[ODAI SSE] Cost Summary received:`, eventData);
+              console.log(`[ODAI SSE] Setting cost summary: $${eventData.total_cost_usd.toFixed(6)} - ${eventData.total_tokens} tokens`);
+              handlersRef.current.setCostSummary(eventData);
+              console.log(`[ODAI SSE] Cost summary set successfully`);
               break;
             case "budget.confirmation_required":
               console.log(`[ODAI SSE] Budget Confirmation Required: $${eventData.estimated_cost_usd}`);
@@ -448,6 +464,7 @@ function ChatInner({
               skipLlmEnhancement={odaiParams.skipLlmEnhancement}
               skipLlmJudge={odaiParams.skipLlmJudge}
               skipSafetyCheck={odaiParams.skipSafetyCheck}
+              useOssOnly={odaiParams.useOssOnly}
               status={status}
               stop={stop}
               usage={usage}

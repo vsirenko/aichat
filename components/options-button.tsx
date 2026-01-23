@@ -16,12 +16,14 @@ export interface OptionsButtonProps {
   skipSafetyCheck: boolean;
   skipLlmEnhancement: boolean;
   skipLlmJudge: boolean;
+  useOssOnly: boolean;
   maxSamplesPerModel: number;
   onParametersChange: (params: {
     includePhaseEvents?: boolean;
     skipSafetyCheck?: boolean;
     skipLlmEnhancement?: boolean;
     skipLlmJudge?: boolean;
+    useOssOnly?: boolean;
     maxSamplesPerModel?: number;
   }) => void;
 }
@@ -31,6 +33,7 @@ export function OptionsButton({
   skipSafetyCheck,
   skipLlmEnhancement,
   skipLlmJudge,
+  useOssOnly,
   maxSamplesPerModel,
   onParametersChange,
 }: OptionsButtonProps) {
@@ -41,6 +44,7 @@ export function OptionsButton({
     skipSafetyCheck?: boolean;
     skipLlmEnhancement?: boolean;
     skipLlmJudge?: boolean;
+    useOssOnly?: boolean;
     maxSamplesPerModel?: number;
   }) => {
     onParametersChange(params);
@@ -128,6 +132,23 @@ export function OptionsButton({
                 htmlFor="skip-llm-judge"
               >
                 Skip LLM judge
+              </Label>
+            </div>
+
+            {}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={useOssOnly}
+                id="use-oss-only"
+                onCheckedChange={(checked) =>
+                  handleChange({ useOssOnly: checked === true })
+                }
+              />
+              <Label
+                className="cursor-pointer font-normal text-sm"
+                htmlFor="use-oss-only"
+              >
+                Use OSS models only
               </Label>
             </div>
           </div>

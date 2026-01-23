@@ -388,6 +388,7 @@ function isODAIPhaseEvent(type: ODAIEventType): boolean {
     "model.complete",
     "web.search",
     "cost.estimate",
+    "cost.summary",
     "budget.confirmation_required",
   ].includes(type);
 }

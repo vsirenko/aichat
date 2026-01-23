@@ -5,6 +5,7 @@ import { memo, useState } from "react";
 import type { ChatMessage } from "@/lib/types";
 import type { Vote } from "@/lib/types-db";
 import { cn, sanitizeText } from "@/lib/utils";
+import { CostSummaryFooter } from "./cost-summary-footer";
 import { useDataStream } from "./data-stream-provider";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -21,6 +22,7 @@ import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
+import { useODAIContext } from "./odai-context";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
 
@@ -29,6 +31,7 @@ const PurePreviewMessage = ({
   message,
   vote,
   isLoading,
+  isLastMessage,
   setMessages,
   regenerate,
   isReadonly,
@@ -38,12 +41,22 @@ const PurePreviewMessage = ({
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
+  isLastMessage: boolean;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
+  const { costSummary } = useODAIContext();
+
+  console.log("[PreviewMessage]", {
+    role: message.role,
+    isLoading,
+    isLastMessage,
+    hasCostSummary: !!costSummary,
+    costSummary
+  });
 
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file"
@@ -282,6 +295,10 @@ const PurePreviewMessage = ({
               setMode={setMode}
               vote={vote}
             />
+          )}
+
+          {message.role === "assistant" && !isLoading && isLastMessage && costSummary && (
+            <CostSummaryFooter summary={costSummary} />
           )}
         </div>
       </div>
