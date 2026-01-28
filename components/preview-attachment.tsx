@@ -39,7 +39,9 @@ export const PreviewAttachment = ({
           className="absolute inset-0 flex items-center justify-center bg-black/50"
           data-testid="input-attachment-loader"
         >
-          <Loader size={16} />
+          <div className="text-white">
+            <Loader size={16} />
+          </div>
         </div>
       )}
 

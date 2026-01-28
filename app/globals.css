@@ -36,8 +36,8 @@
   --accent-foreground: hsl(var(--odai-black));
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(var(--odai-gray-light));
-  --input: hsl(var(--odai-gray-light));
+  --border: hsl(0 0% 70%);
+  --input: hsl(0 0% 70%);
   --ring: hsl(var(--odai-blue-primary));
   --chart-1: hsl(var(--odai-blue-primary));
   --chart-2: hsl(var(--odai-green-dark));

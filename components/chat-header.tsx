@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { ODAILogo, PlusIcon } from "./icons";
+import { ThemeToggle } from "./theme-toggle";
 
 interface ChatHeaderProps {
   onHistoryClick?: () => void;
@@ -22,6 +23,7 @@ function PureChatHeader({ onHistoryClick }: ChatHeaderProps) {
 
       {}
       <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle />
         {onHistoryClick && (
           <Button
             className="h-9 gap-2 rounded-full px-4 text-white hover:opacity-90"
