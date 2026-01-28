@@ -142,15 +142,15 @@ const PurePreviewMessage = ({
                   <div key={key}>
                     <MessageContent
                       className={cn({
-                        "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
+                        "w-fit break-words rounded-2xl px-3 py-2 text-right":
                           message.role === "user",
-                        "bg-transparent px-0 py-0 text-left":
+                        "bg-transparent px-0 py-0 text-justify":
                           message.role === "assistant",
                       })}
                       data-testid="message-content"
                       style={
                         message.role === "user"
-                          ? { backgroundColor: "#D6FFA6", color: "#111111" }
+                          ? { backgroundColor: "var(--user-message-bg)", color: "var(--user-message-fg)" }
                           : undefined
                       }
                     >
