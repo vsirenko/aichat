@@ -43,8 +43,8 @@ function PhaseIndicatorSmall({
 
   const iconColors = {
     pending: "text-muted-foreground/40",
-    running: "text-[#3B43FE]",
-    completed: "text-[#D6FFA6] dark:text-[#74885C]",
+    running: "text-[#3B43FE] dark:text-[#989CF9]",
+    completed: "text-[#3B43FE] dark:text-[#D6FFA6]",
     failed: "text-red-600 dark:text-red-500",
   };
 
@@ -52,8 +52,8 @@ function PhaseIndicatorSmall({
     <button
       className={cn(
         "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all",
-        phase.status === "completed" && "border-[#D6FFA6]/50",
-        phase.status === "running" && "border-[#3B43FE]/50",
+        phase.status === "completed" && "border-[#3B43FE]/50 dark:border-[#D6FFA6]/50",
+        phase.status === "running" && "border-[#3B43FE]/50 dark:border-[#989CF9]/50",
         phase.status === "failed" && "border-red-500/50",
         phase.status === "pending" && "border-border/40",
         onClick && "cursor-pointer hover:scale-105"
@@ -63,7 +63,13 @@ function PhaseIndicatorSmall({
       title={phase.phase_name}
       type="button"
     >
-      <StatusIcon className={cn("h-3 w-3", iconColors[phase.status])} />
+      <StatusIcon 
+        className={cn(
+          "h-3 w-3", 
+          iconColors[phase.status],
+          phase.status === "running" && "fill-current"
+        )} 
+      />
     </button>
   );
 }
@@ -96,10 +102,10 @@ function HistoryEntryCard({
 
   return (
     <>
-      <div className="rounded-lg border bg-card p-4">
+      <div className="rounded-lg border border-[#3B43FE]/20 bg-card p-4 shadow-sm hover:border-[#3B43FE]/40 transition-colors dark:border-[#D6FFA6]/20 dark:hover:border-[#D6FFA6]/40">
         <div className="mb-3 flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+            <div className="flex items-center gap-2 text-foreground/60 text-xs">
               <Clock className="h-3 w-3" />
               <span>
                 {timeStr} · {dateStr}
@@ -115,7 +121,7 @@ function HistoryEntryCard({
             onClick={onRemove}
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            className="h-8 w-8 text-foreground/60 hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -155,8 +161,8 @@ function HistoryEntryCard({
                   className={cn(
                     "h-0.5 w-4",
                     phase.status === "completed"
-                      ? "bg-[#D6FFA6]/30"
-                      : "bg-border/20"
+                      ? "bg-[#3B43FE]/40 dark:bg-[#D6FFA6]/40"
+                      : "bg-border/40"
                   )}
                 />
               )}
@@ -164,7 +170,7 @@ function HistoryEntryCard({
           ))}
         </div>
 
-        <div className="mt-2 text-muted-foreground text-xs">
+        <div className="mt-2 text-foreground/60 text-xs">
           {completedPhases.length}/{entry.phases.length} phases completed
         </div>
 
@@ -209,7 +215,7 @@ function PureHistoryDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Thinking History</SheetTitle>
+          <SheetTitle className="text-[#3B43FE] dark:text-[#D6FFA6]">Thinking History</SheetTitle>
           <SheetDescription>
             View previous thinking stages and phases. History clears when you
             leave the site.
@@ -220,14 +226,14 @@ function PureHistoryDrawer({
           {history.length > 0 ? (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-foreground/60 text-sm">
                   {history.length} {history.length === 1 ? "entry" : "entries"}
                 </p>
                 <Button
                   onClick={onClearHistory}
                   size="sm"
                   variant="outline"
-                  className="text-destructive hover:text-destructive"
+                  className="border-red-400 text-red-600 font-medium hover:bg-red-50 hover:border-red-500 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 dark:hover:border-red-700 dark:hover:text-red-300 transition-colors"
                 >
                   Clear All
                 </Button>
@@ -242,7 +248,7 @@ function PureHistoryDrawer({
             </>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-foreground/60 text-sm">
                 No history yet. Your thinking stages will appear here.
               </p>
             </div>

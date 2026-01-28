@@ -62,6 +62,10 @@ const PurePreviewMessage = ({
     (part) => part.type === "file"
   );
 
+  // Determine if this message should show animated icon
+  const hasTextContent = message.parts?.some((p) => p.type === "text" && p.text?.trim());
+  const shouldAnimate = message.role === "assistant" && isLoading && isLastMessage && !hasTextContent;
+
   useDataStream();
 
   return (
@@ -77,8 +81,11 @@ const PurePreviewMessage = ({
         })}
       >
         {message.role === "assistant" && (
-          <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border text-foreground">
-            <SparklesIcon size={34} />
+          <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white">
+            <SparklesIcon 
+              size={34} 
+              animated={shouldAnimate} 
+            />
           </div>
         )}
 

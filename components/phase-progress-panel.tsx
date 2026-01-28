@@ -46,8 +46,8 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 
   const cardStyles = {
     pending: "border-border/40 bg-muted/10",
-    running: "shadow-lg",
-    completed: "",
+    running: "border-[#3B43FE]/50 shadow-lg dark:border-[#989CF9]/50",
+    completed: "border-[#3B43FE]/50 dark:border-[#D6FFA6]/50",
     failed: "border-red-500/50 bg-red-50/30 dark:bg-red-950/20",
   };
 
@@ -89,15 +89,15 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
             viewBox="0 0 100 100"
           >
             <circle
+              className="stroke-muted-foreground/20"
               cx="50"
               cy="50"
               fill="none"
               r="45"
               strokeWidth="10"
-              stroke="#DCDCDC"
             />
             <circle
-              className="transition-all duration-500"
+              className="transition-all duration-500 stroke-[#3B43FE] dark:stroke-[#989CF9]"
               cx="50"
               cy="50"
               fill="none"
@@ -105,7 +105,6 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
               strokeDasharray={`${progress * 2.827} 282.7`}
               strokeLinecap="round"
               strokeWidth="10"
-              stroke="#3B43FE"
             />
           </svg>
         )}
@@ -114,12 +113,9 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
           className={cn(
             "relative z-10 h-4 w-4 sm:h-5 sm:w-5",
             iconColors[phase.status],
-            phase.status === "running" && "fill-current"
+            phase.status === "running" && "fill-current text-[#3B43FE] dark:text-[#989CF9]",
+            phase.status === "completed" && "text-[#3B43FE] dark:text-[#D6FFA6]"
           )}
-          style={{
-            color: phase.status === "running" ? "#3B43FE" : 
-                   phase.status === "completed" ? "#D6FFA6" : undefined
-          }}
         />
 
         <div className="-bottom-0.5 -right-0.5 absolute z-20 flex h-4 w-4 items-center justify-center rounded-full bg-background font-bold text-[8px] shadow-sm ring-1 ring-border sm:h-[18px] sm:w-[18px] sm:text-[9px]">
@@ -227,9 +223,9 @@ function PhaseProgressPanelContent() {
                 className={cn(
                   "h-0.5 w-6 transition-colors duration-300 sm:w-8",
                   phase.status === "completed"
-                    ? "bg-[#D6FFA6]/50"
+                    ? "bg-[#3B43FE]/50 dark:bg-[#D6FFA6]/50"
                     : phase.status === "running"
-                      ? "bg-[#3B43FE]/50"
+                      ? "bg-[#3B43FE]/50 dark:bg-[#989CF9]/50"
                       : "bg-border/30"
                 )}
               />

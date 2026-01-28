@@ -938,7 +938,7 @@ export const ChevronDownIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export const SparklesIcon = ({ size = 20 }: { size?: number }) => (
+export const SparklesIcon = ({ size = 20, animated = true }: { size?: number; animated?: boolean }) => (
   <svg
     height={size}
     width={size}
@@ -954,10 +954,6 @@ export const SparklesIcon = ({ size = 20 }: { size?: number }) => (
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-          .odai-rotating {
-            animation: odai-spin 2s linear infinite;
-            transform-origin: 52.06px 52.06px;
-          }
         `}
       </style>
     </defs>
@@ -971,7 +967,13 @@ export const SparklesIcon = ({ size = 20 }: { size?: number }) => (
     />
     
     {/* Rotating segments - light in light theme, dark in dark theme */}
-    <g className="odai-rotating fill-white dark:fill-black">
+    <g 
+      className="fill-white dark:fill-black"
+      style={{
+        transformOrigin: '52.06px 52.06px',
+        animation: animated ? 'odai-spin 2s linear infinite' : 'none'
+      }}
+    >
       {/* Top segments - thin lines */}
       <path d="M96.92,49.97l-15.66,1.43-.38-4.23,15.65-1.43.39,4.22h0Z" />
       <path d="M95.74,41.58l-15.12,4.3-1.06-3.73,15.12-4.3,1.06,3.73h0Z" />
