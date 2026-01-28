@@ -91,7 +91,6 @@ export const Loader = ({ className, size = 16, ...props }: LoaderProps) => (
     )}
     {...props}
   >
-    123
     <LoaderIcon size={size} />
   </div>
 );
