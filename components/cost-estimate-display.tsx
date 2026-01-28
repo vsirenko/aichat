@@ -3,13 +3,20 @@
 import { memo } from "react";
 import type { CostEstimateEvent } from "@/lib/ai/odai-types";
 import { cn } from "@/lib/utils";
+import { formatExecutionMode, formatCost } from "@/lib/formatters";
 import { CpuIcon } from "./icons";
 
 interface CostEstimateDisplayProps {
   estimate: CostEstimateEvent;
+  executionMode?: string;
+  subTaskCount?: number;
 }
 
-function PureCostEstimateDisplay({ estimate }: CostEstimateDisplayProps) {
+function PureCostEstimateDisplay({ 
+  estimate,
+  executionMode,
+  subTaskCount 
+}: CostEstimateDisplayProps) {
   const tierColors = {
     low: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     medium:
@@ -34,7 +41,7 @@ function PureCostEstimateDisplay({ estimate }: CostEstimateDisplayProps) {
       </div>
 
       <div className="mb-4 font-bold text-3xl">
-        ${estimate.estimated_cost_usd.toFixed(2)}
+        {formatCost(estimate.estimated_cost_usd)}
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -61,6 +68,18 @@ function PureCostEstimateDisplay({ estimate }: CostEstimateDisplayProps) {
             {estimate.reasoning_budget.toLocaleString()} tokens
           </div>
         </div>
+        {executionMode && (
+          <div>
+            <div className="text-muted-foreground">Execution Mode</div>
+            <div className="font-semibold">{formatExecutionMode(executionMode)}</div>
+          </div>
+        )}
+        {subTaskCount !== undefined && subTaskCount > 0 && (
+          <div>
+            <div className="text-muted-foreground">Sub-tasks</div>
+            <div className="font-semibold">{subTaskCount}</div>
+          </div>
+        )}
       </div>
 
       {estimate.requires_confirmation && (

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { BudgetConfirmationRequiredEvent } from "@/lib/ai/odai-types";
+import { formatCost } from "@/lib/formatters";
 
 interface BudgetConfirmationModalProps {
   event: BudgetConfirmationRequiredEvent;
@@ -66,7 +67,7 @@ function PureBudgetConfirmationModal({
               Estimated Cost
             </div>
             <div className="font-bold text-5xl tracking-tight">
-              ${event.estimated_cost_usd.toFixed(2)}
+              {formatCost(event.estimated_cost_usd)}
             </div>
           </div>
 
@@ -94,7 +95,7 @@ function PureBudgetConfirmationModal({
                   {option.label}
                   {option.new_estimated_cost_usd !== undefined && (
                     <span className="ml-2 font-normal opacity-80">
-                      ${option.new_estimated_cost_usd.toFixed(2)}
+                      {formatCost(option.new_estimated_cost_usd)}
                     </span>
                   )}
                 </AlertDialogAction>
@@ -115,7 +116,7 @@ function PureBudgetConfirmationModal({
                   {option.label}
                   {option.new_estimated_cost_usd !== undefined && (
                     <span className="ml-2 font-normal opacity-80">
-                      ${option.new_estimated_cost_usd.toFixed(2)}
+                      {formatCost(option.new_estimated_cost_usd)}
                     </span>
                   )}
                 </Button>

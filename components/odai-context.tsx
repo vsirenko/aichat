@@ -53,6 +53,8 @@ interface ODAIContextValue {
 
   costEstimate: CostEstimateEvent | null;
   setCostEstimate: (estimate: CostEstimateEvent | null) => void;
+  phase2ExecutionMode: string | null;
+  phase2SubTaskCount: number | null;
   costSummary: CostSummaryEvent | null;
   setCostSummary: (summary: CostSummaryEvent | null) => void;
   budgetConfirmation: BudgetConfirmationRequiredEvent | null;
@@ -78,6 +80,8 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   const [costEstimate, setCostEstimate] = useState<CostEstimateEvent | null>(
     null
   );
+  const [phase2ExecutionMode, setPhase2ExecutionMode] = useState<string | null>(null);
+  const [phase2SubTaskCount, setPhase2SubTaskCount] = useState<number | null>(null);
   const [costSummary, setCostSummary] = useState<CostSummaryEvent | null>(null);
   const [budgetConfirmation, setBudgetConfirmation] =
     useState<BudgetConfirmationRequiredEvent | null>(null);
@@ -114,7 +118,7 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
           return {
             ...p,
             status: "running" as const,
-            phase_name: event.phase_name,
+            // Keep frontend phase_name, don't overwrite with backend
             phase_number: event.phase_number,
             progress_percent: 0,
             current_step: undefined,
@@ -171,6 +175,20 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
 
   const handlePhaseComplete = useCallback((event: PhaseCompleteEvent) => {
     console.log(`[ODAI Context] handlePhaseComplete for ${event.phase}: success=${event.success}, duration=${(event.duration_ms / 1000).toFixed(2)}s`);
+    
+    // Extract Phase 2 decomposition info
+    if (event.phase === "budget_allocation" && event.summary) {
+      const decomposition = event.summary.decomposition as Record<string, unknown> | undefined;
+      const executionMode = (decomposition?.execution_mode as string) ?? (event.summary.execution_mode as string);
+      const subTaskCount = (decomposition?.sub_task_count as number) ?? (decomposition?.subtasks as number);
+      
+      if (executionMode) {
+        setPhase2ExecutionMode(executionMode);
+      }
+      if (subTaskCount !== undefined) {
+        setPhase2SubTaskCount(subTaskCount);
+      }
+    }
     
     setPhases((prev) => {
       const currentPhaseIndex = prev.findIndex((p) => p.phase === event.phase);
@@ -281,6 +299,8 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     setWebScrapedSources([]);
     setWebRefreshDetails(null);
     setCostEstimate(null);
+    setPhase2ExecutionMode(null);
+    setPhase2SubTaskCount(null);
     setCostSummary(null);
     setBudgetConfirmation(null);
     setErrorEvents([]);
@@ -308,6 +328,8 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       setWebRefreshDetails,
       costEstimate,
       setCostEstimate,
+      phase2ExecutionMode,
+      phase2SubTaskCount,
       costSummary,
       setCostSummary,
       budgetConfirmation,
@@ -333,6 +355,8 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       handleWebScrape,
       webRefreshDetails,
       costEstimate,
+      phase2ExecutionMode,
+      phase2SubTaskCount,
       costSummary,
       budgetConfirmation,
       errorEvents,

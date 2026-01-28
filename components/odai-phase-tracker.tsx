@@ -9,6 +9,7 @@ import {
   getComplexityColor,
   getProviderColor,
 } from "@/lib/ai/odai-stream-handler";
+import { formatCost, formatDuration } from "@/lib/formatters";
 
 interface ODAIPhaseTrackerProps {
   phases: PhaseState[];
@@ -44,7 +45,7 @@ export function ODAIPhaseTracker({
       {costEstimate !== undefined && (
         <div className="text-muted-foreground text-xs">
           Estimated cost:{" "}
-          <span className="font-mono">${costEstimate.toFixed(4)}</span>
+          <span className="font-mono">{formatCost(costEstimate)}</span>
         </div>
       )}
 
@@ -78,7 +79,7 @@ export function ODAIPhaseTracker({
       {}
       {models.length > 0 && (
         <div className="space-y-2">
-          <div className="font-medium text-xs">Model Execution</div>
+          <div className="font-medium text-xs">Phase 4: Parallel Inference</div>
           <div className="space-y-1">
             {models.map((model, i) => (
               <ModelExecutionRow key={`${model.model_id}-${i}`} model={model} />
@@ -127,7 +128,7 @@ function PhaseIndicator({ phase }: { phase: PhaseState }) {
       </div>
       {phase.duration_ms && (
         <div className="text-[9px] text-muted-foreground">
-          {(phase.duration_ms / 1000).toFixed(1)}s
+          {formatDuration(phase.duration_ms)}
         </div>
       )}
     </div>
@@ -167,7 +168,7 @@ function ModelExecutionRow({ model }: { model: ModelExecutionState }) {
       )}
       {model.duration_ms && (
         <span className="text-muted-foreground">
-          {(model.duration_ms / 1000).toFixed(1)}s
+          {formatDuration(model.duration_ms)}
         </span>
       )}
     </div>

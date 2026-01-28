@@ -46,7 +46,7 @@ function PurePhaseDetailModal({
       open={open}
       onOpenChange={onOpenChange}
       title={`Phase ${phase.phase_number}: ${phase.phase_name}`}
-      description="Detailed phase execution summary"
+      description="Phase execution summary"
     >
       <div className="space-y-6 py-4">
           {/* Common Fields */}

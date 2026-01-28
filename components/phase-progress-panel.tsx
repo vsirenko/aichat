@@ -4,6 +4,8 @@ import { CheckCircle2, ChevronDown, Circle, XCircle } from "lucide-react";
 import { memo, useState } from "react";
 import type { PhaseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { formatDuration, formatBoolean, formatCost, formatTokens } from "@/lib/formatters";
+import { getPhaseMetrics } from "@/lib/ai/phase-utils";
 import { ErrorAlert } from "./error-alert";
 import { ModelExecutionTable } from "./model-execution-table";
 import { useODAIContext } from "./odai-context";
@@ -60,7 +62,7 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 
   const tooltipText = [
     phase.phase_name,
-    phase.duration_ms && ` - ${(phase.duration_ms / 1000).toFixed(1)}s`,
+    phase.duration_ms && ` - ${formatDuration(phase.duration_ms)}`,
     showProgress && ` (${progress}%)`,
     phase.current_step_name && `\n${phase.current_step_name}`,
     phase.current_step_status && ` - ${phase.current_step_status}`,
@@ -263,20 +265,87 @@ function PhaseProgressPanelContent() {
       </ResponsiveSheet>
 
       <ResponsiveSheet
-        description="Detailed phase execution summary"
+        description="Phase execution summary"
         onOpenChange={(open) => {
           if (!open) setExpandedPhase(null);
         }}
         open={Boolean(expandedPhase === "inference" && canShowWaveProgress)}
         title="Phase 4: Parallel Inference"
       >
-        <div className="space-y-6">
-          {webRefreshDetails && (
-            <WebRefreshDisplay details={webRefreshDetails} />
-          )}
+        <div className="space-y-6 py-4">
+          {inferencePhase && (
+            <>
+              {/* Duration and Success */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    Duration
+                  </div>
+                  <div className="font-semibold text-sm">
+                    {inferencePhase.duration_ms
+                      ? formatDuration(inferencePhase.duration_ms)
+                      : "N/A"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    Success
+                  </div>
+                  <div
+                    className={cn(
+                      "font-semibold text-sm",
+                      inferencePhase.status === "completed"
+                        ? "text-green-600 dark:text-green-500"
+                        : "text-red-600 dark:text-red-500"
+                    )}
+                  >
+                    {formatBoolean(inferencePhase.status === "completed")}
+                  </div>
+                </div>
+              </div>
 
-          <WaveProgressDisplay models={models} />
-          <ModelExecutionTable models={models} />
+              {/* Metrics */}
+              {inferencePhase.details && (() => {
+                const metrics = getPhaseMetrics(inferencePhase.details);
+                return metrics ? (
+                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                    <h4 className="font-semibold text-sm">Metrics</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <div className="text-muted-foreground text-xs">Total Cost</div>
+                        <div className="font-semibold text-sm">
+                          {formatCost(metrics.total_cost_usd ?? 0)}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-muted-foreground text-xs">Total Tokens</div>
+                        <div className="font-semibold text-sm">
+                          {formatTokens((metrics.total_input_tokens ?? 0) + (metrics.total_output_tokens ?? 0) + (metrics.total_thinking_tokens ?? 0))}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-muted-foreground text-xs">API Calls</div>
+                        <div className="font-semibold text-sm">
+                          {`${metrics.successful_llm_calls ?? 0}/${metrics.total_llm_calls ?? 0}`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Web Context Refresh */}
+              {webRefreshDetails && (
+                <WebRefreshDisplay details={webRefreshDetails} />
+              )}
+
+              {/* Wave Execution */}
+              <WaveProgressDisplay models={models} />
+
+              {/* Model Details */}
+              <ModelExecutionTable models={models} />
+            </>
+          )}
         </div>
       </ResponsiveSheet>
 

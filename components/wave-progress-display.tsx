@@ -3,7 +3,7 @@
 import { memo, useMemo } from "react";
 import type { ModelExecution } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { formatWaveExecution } from "@/lib/formatters";
+import { formatWaveExecution, formatDuration, formatProvider } from "@/lib/formatters";
 
 interface WaveProgressDisplayProps {
   models: ModelExecution[];
@@ -97,7 +97,7 @@ function PureWaveProgressDisplay({ models }: WaveProgressDisplayProps) {
                     model.status === "pending" && "bg-transparent"
                   )}
                   key={`${model.model_id}-${i}`}
-                  title={`${model.model_id} (${model.provider}) - ${model.status}${model.duration_ms ? ` - ${(model.duration_ms / 1000).toFixed(1)}s` : ""}`}
+                  title={`${model.model_id} (${formatProvider(model.provider)}) - ${model.status}${model.duration_ms ? ` - ${formatDuration(model.duration_ms)}` : ""}`}
                 />
               ))}
             </div>
