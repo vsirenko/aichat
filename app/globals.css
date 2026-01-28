@@ -56,6 +56,9 @@
   --complexity-high: hsl(25 95% 53%);
   --complexity-extreme: hsl(var(--destructive));
 
+  --user-message-bg: hsl(var(--odai-blue-primary));
+  --user-message-fg: hsl(0 0% 100%);
+
   --transition-fast: 150ms;
   --transition-normal: 300ms;
   --pulse-duration: 1.5s;
@@ -86,6 +89,9 @@
   --chart-3: hsl(var(--odai-green-lighter));
   --chart-4: hsl(var(--odai-blue-primary));
   --chart-5: hsl(var(--odai-green-dark));
+
+  --user-message-bg: hsl(var(--odai-blue-light));
+  --user-message-fg: hsl(var(--odai-black));
 }
 
 @theme {
