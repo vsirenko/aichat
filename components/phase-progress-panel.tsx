@@ -265,7 +265,7 @@ function PhaseProgressPanelContent() {
       </ResponsiveSheet>
 
       <ResponsiveSheet
-        description="Phase execution summary"
+        description="Phase Execution Summary"
         onOpenChange={(open) => {
           if (!open) setExpandedPhase(null);
         }}
