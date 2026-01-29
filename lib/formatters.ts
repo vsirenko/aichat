@@ -93,24 +93,19 @@ export function formatCost(value: number | undefined | null): string {
 }
 
 /**
- * Format duration: remove parentheses, max 1 decimal for values ≥10s.
+ * Format duration: always show 2 decimals for all values.
  * 
  * @example
  * formatDuration(630) // "0.63s"
- * formatDuration(17100) // "17.1s"
- * formatDuration(42920) // "42.9s"
+ * formatDuration(17123) // "17.12s"
+ * formatDuration(42920) // "42.92s"
  */
 export function formatDuration(ms: number | undefined | null): string {
   if (ms === undefined || ms === null) return "0s";
   
   const seconds = ms / 1000;
   
-  // For values >= 10s, show max 1 decimal
-  if (seconds >= 10) {
-    return `${seconds.toFixed(1)}s`;
-  }
-  
-  // For values < 10s, show 2 decimals
+  // Always show 2 decimals for all values
   return `${seconds.toFixed(2)}s`;
 }
 
