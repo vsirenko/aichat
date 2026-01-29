@@ -1,9 +1,11 @@
 "use client";
 
 import { CheckCircle2, Circle, Clock, Trash2, XCircle } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useState, useMemo } from "react";
 import type { HistoryEntry } from "@/hooks/use-history";
 import { cn } from "@/lib/utils";
+import { formatCost, formatTokens } from "@/lib/formatters";
+import { getPhaseMetrics } from "@/lib/ai/phase-utils";
 import { ModelExecutionTable } from "./model-execution-table";
 import { PhaseDetailModal } from "./phase-detail-modal";
 import { PhaseStepDetail } from "./phase-step-detail";
@@ -25,6 +27,32 @@ interface HistoryDrawerProps {
   history: HistoryEntry[];
   onClearHistory: () => void;
   onRemoveEntry: (id: string) => void;
+}
+
+/**
+ * Calculate total cost and tokens for a history entry
+ */
+function calculateEntryTotals(entry: HistoryEntry): {
+  totalCost: number;
+  totalTokens: number;
+} {
+  let totalCost = 0;
+  let totalTokens = 0;
+
+  for (const phase of entry.phases) {
+    if (phase.status === "completed" && phase.details) {
+      const metrics = getPhaseMetrics(phase.details);
+      if (metrics) {
+        totalCost += metrics.total_cost_usd ?? 0;
+        totalTokens += 
+          (metrics.total_input_tokens ?? 0) + 
+          (metrics.total_output_tokens ?? 0) + 
+          (metrics.total_thinking_tokens ?? 0);
+      }
+    }
+  }
+
+  return { totalCost, totalTokens };
 }
 
 function PhaseIndicatorSmall({
@@ -99,6 +127,7 @@ function HistoryEntryCard({
 
   const inferencePhase = entry.phases.find((p) => p.phase === "inference");
   const preAnalysisPhase = entry.phases.find((p) => p.phase === "pre_analysis");
+  const { totalCost, totalTokens } = calculateEntryTotals(entry);
 
   return (
     <>
@@ -170,8 +199,24 @@ function HistoryEntryCard({
           ))}
         </div>
 
-        <div className="mt-2 text-foreground/60 text-xs">
-          {completedPhases.length}/{entry.phases.length} phases completed
+        <div className="mt-3 flex items-center justify-between gap-4 text-xs">
+          <div className="text-foreground/60">
+            {completedPhases.length}/{entry.phases.length} phases completed
+          </div>
+          {(totalCost > 0 || totalTokens > 0) && (
+            <div className="flex items-center gap-3">
+              {totalCost > 0 && (
+                <div className="font-medium text-[#3B43FE] dark:text-[#D6FFA6]">
+                  {formatCost(totalCost)}
+                </div>
+              )}
+              {totalTokens > 0 && (
+                <div className="font-medium text-foreground/70">
+                  {formatTokens(totalTokens)}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Expanded content for inference */}
@@ -211,6 +256,20 @@ function PureHistoryDrawer({
   onClearHistory,
   onRemoveEntry,
 }: HistoryDrawerProps) {
+  // Calculate cumulative totals across all history entries
+  const cumulativeTotals = useMemo(() => {
+    let totalCost = 0;
+    let totalTokens = 0;
+
+    for (const entry of history) {
+      const { totalCost: entryCost, totalTokens: entryTokens } = calculateEntryTotals(entry);
+      totalCost += entryCost;
+      totalTokens += entryTokens;
+    }
+
+    return { totalCost, totalTokens };
+  }, [history]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
@@ -238,6 +297,34 @@ function PureHistoryDrawer({
                   Clear All
                 </Button>
               </div>
+
+              {/* Cumulative Totals Summary */}
+              {(cumulativeTotals.totalCost > 0 || cumulativeTotals.totalTokens > 0) && (
+                <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+                  <div className="mb-2.5 font-medium text-[11px] text-foreground/60">
+                    Total Usage
+                  </div>
+                  <div className="flex items-baseline gap-6">
+                    {cumulativeTotals.totalCost > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-2xl text-[#3B43FE] dark:text-[#D6FFA6]">
+                          {formatCost(cumulativeTotals.totalCost)}
+                        </span>
+                        <span className="text-foreground/40 text-xs">cost</span>
+                      </div>
+                    )}
+                    {cumulativeTotals.totalTokens > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-2xl text-foreground">
+                          {formatTokens(cumulativeTotals.totalTokens)}
+                        </span>
+                        <span className="text-foreground/40 text-xs">tokens</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {history.map((entry) => (
                 <HistoryEntryCard
                   entry={entry}
