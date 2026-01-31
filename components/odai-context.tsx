@@ -42,14 +42,26 @@ interface ODAIContextValue {
   handleModelActive: (event: ModelActiveEvent) => void;
   handleModelComplete: (event: ModelCompleteEvent) => void;
 
+  // Phase 1 web results
+  phase1WebSources: WebSource[];
+  phase1WebScrapedSources: WebScrapedSource[];
+  handleWebSearchPhase1: (event: WebSearchEvent) => void;
+  handleWebScrapePhase1: (event: WebScrapeEvent) => void;
+  
+  // Phase 4 web results (grouped by sub-task)
+  phase4WebResults: Map<string, { sources: WebSource[]; scrapedSources: WebScrapedSource[] }>;
+  handleWebSearchPhase4: (event: WebSearchEvent) => void;
+  handleWebScrapePhase4: (event: WebScrapeEvent) => void;
+  webRefreshDetails: WebContextRefreshDetails | null;
+  setWebRefreshDetails: (details: WebContextRefreshDetails | null) => void;
+  
+  // Legacy (deprecated, kept for backward compatibility)
   webSources: WebSource[];
   setWebSources: (sources: WebSource[]) => void;
   handleWebSearch: (event: WebSearchEvent) => void;
   webScrapedSources: WebScrapedSource[];
   setWebScrapedSources: (sources: WebScrapedSource[]) => void;
   handleWebScrape: (event: WebScrapeEvent) => void;
-  webRefreshDetails: WebContextRefreshDetails | null;
-  setWebRefreshDetails: (details: WebContextRefreshDetails | null) => void;
 
   costEstimate: CostEstimateEvent | null;
   setCostEstimate: (estimate: CostEstimateEvent | null) => void;
@@ -73,6 +85,17 @@ const ODAIContext = createContext<ODAIContextValue | null>(null);
 export function ODAIContextProvider({ children }: { children: ReactNode }) {
   const [phases, setPhases] = useState<PhaseState[]>(() => initializePhases());
   const [models, setModels] = useState<ModelExecution[]>([]);
+  
+  // Phase 1 web results (first event only)
+  const [phase1WebSources, setPhase1WebSources] = useState<WebSource[]>([]);
+  const [phase1WebScrapedSources, setPhase1WebScrapedSources] = useState<WebScrapedSource[]>([]);
+  const [phase1WebReceived, setPhase1WebReceived] = useState(false);
+  
+  // Phase 4 web results (grouped by sub-task, first event per sub-task only)
+  const [phase4WebResults, setPhase4WebResults] = useState<Map<string, { sources: WebSource[]; scrapedSources: WebScrapedSource[] }>>(new Map());
+  const [phase4WebReceivedKeys, setPhase4WebReceivedKeys] = useState<Set<string>>(new Set());
+  
+  // Legacy state (for backward compatibility)
   const [webSources, setWebSources] = useState<WebSource[]>([]);
   const [webScrapedSources, setWebScrapedSources] = useState<WebScrapedSource[]>([]);
   const [webRefreshDetails, setWebRefreshDetails] =
@@ -273,6 +296,78 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
     [updateModel]
   );
 
+  // Phase 1 handlers (first event only)
+  const handleWebSearchPhase1 = useCallback((event: WebSearchEvent) => {
+    if (event.action === "completed" && event.sources && !phase1WebReceived) {
+      console.log("[ODAI Context] Phase 1 Web Search - First event, storing results");
+      setPhase1WebSources(event.sources);
+      setPhase1WebReceived(true);
+    } else if (phase1WebReceived) {
+      console.log("[ODAI Context] Phase 1 Web Search - Ignoring subsequent event");
+    }
+  }, [phase1WebReceived]);
+
+  const handleWebScrapePhase1 = useCallback((event: WebScrapeEvent) => {
+    if (event.action === "completed" && event.sources && !phase1WebReceived) {
+      console.log("[ODAI Context] Phase 1 Web Scrape - First event, storing results");
+      setPhase1WebScrapedSources(event.sources.map(s => ({
+        ...s,
+        sub_links: event.sub_links_scraped
+      })));
+      setPhase1WebReceived(true);
+    } else if (phase1WebReceived) {
+      console.log("[ODAI Context] Phase 1 Web Scrape - Ignoring subsequent event");
+    }
+  }, [phase1WebReceived]);
+
+  // Phase 4 handlers (first event per sub-task only)
+  const handleWebSearchPhase4 = useCallback((event: WebSearchEvent) => {
+    if (event.action === "completed" && event.sources) {
+      const subTaskKey = event.sub_task_index !== null && event.sub_task_index !== undefined
+        ? `${event.sub_task_index}-${event.sub_task_id || 'unknown'}`
+        : 'single';
+      
+      if (!phase4WebReceivedKeys.has(subTaskKey)) {
+        console.log(`[ODAI Context] Phase 4 Web Search - First event for sub-task ${subTaskKey}, storing results`);
+        setPhase4WebResults(prev => {
+          const newMap = new Map(prev);
+          const existing = newMap.get(subTaskKey) || { sources: [], scrapedSources: [] };
+          newMap.set(subTaskKey, { ...existing, sources: event.sources || [] });
+          return newMap;
+        });
+        setPhase4WebReceivedKeys(prev => new Set(prev).add(subTaskKey));
+      } else {
+        console.log(`[ODAI Context] Phase 4 Web Search - Ignoring subsequent event for sub-task ${subTaskKey}`);
+      }
+    }
+  }, [phase4WebReceivedKeys]);
+
+  const handleWebScrapePhase4 = useCallback((event: WebScrapeEvent) => {
+    if (event.action === "completed" && event.sources) {
+      const subTaskKey = event.sub_task_index !== null && event.sub_task_index !== undefined
+        ? `${event.sub_task_index}-${event.sub_task_id || 'unknown'}`
+        : 'single';
+      
+      if (!phase4WebReceivedKeys.has(subTaskKey)) {
+        console.log(`[ODAI Context] Phase 4 Web Scrape - First event for sub-task ${subTaskKey}, storing results`);
+        const scrapedSources = event.sources.map(s => ({
+          ...s,
+          sub_links: event.sub_links_scraped
+        }));
+        setPhase4WebResults(prev => {
+          const newMap = new Map(prev);
+          const existing = newMap.get(subTaskKey) || { sources: [], scrapedSources: [] };
+          newMap.set(subTaskKey, { ...existing, scrapedSources });
+          return newMap;
+        });
+        setPhase4WebReceivedKeys(prev => new Set(prev).add(subTaskKey));
+      } else {
+        console.log(`[ODAI Context] Phase 4 Web Scrape - Ignoring subsequent event for sub-task ${subTaskKey}`);
+      }
+    }
+  }, [phase4WebReceivedKeys]);
+
+  // Legacy handlers (for backward compatibility)
   const handleWebSearch = useCallback((event: WebSearchEvent) => {
     if (event.action === "completed" && event.sources) {
       setWebSources(event.sources);
@@ -295,9 +390,21 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     setPhases(initializePhases());
     setModels([]);
+    
+    // Reset Phase 1 web results
+    setPhase1WebSources([]);
+    setPhase1WebScrapedSources([]);
+    setPhase1WebReceived(false);
+    
+    // Reset Phase 4 web results
+    setPhase4WebResults(new Map());
+    setPhase4WebReceivedKeys(new Set());
+    
+    // Reset legacy web results
     setWebSources([]);
     setWebScrapedSources([]);
     setWebRefreshDetails(null);
+    
     setCostEstimate(null);
     setPhase2ExecutionMode(null);
     setPhase2SubTaskCount(null);
@@ -318,14 +425,28 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       updateModel,
       handleModelActive,
       handleModelComplete,
+      
+      // Phase 1 web results
+      phase1WebSources,
+      phase1WebScrapedSources,
+      handleWebSearchPhase1,
+      handleWebScrapePhase1,
+      
+      // Phase 4 web results
+      phase4WebResults,
+      handleWebSearchPhase4,
+      handleWebScrapePhase4,
+      webRefreshDetails,
+      setWebRefreshDetails,
+      
+      // Legacy web results
       webSources,
       setWebSources,
       handleWebSearch,
       webScrapedSources,
       setWebScrapedSources,
       handleWebScrape,
-      webRefreshDetails,
-      setWebRefreshDetails,
+      
       costEstimate,
       setCostEstimate,
       phase2ExecutionMode,
@@ -349,11 +470,25 @@ export function ODAIContextProvider({ children }: { children: ReactNode }) {
       updateModel,
       handleModelActive,
       handleModelComplete,
+      
+      // Phase 1 web results
+      phase1WebSources,
+      phase1WebScrapedSources,
+      handleWebSearchPhase1,
+      handleWebScrapePhase1,
+      
+      // Phase 4 web results
+      phase4WebResults,
+      handleWebSearchPhase4,
+      handleWebScrapePhase4,
+      webRefreshDetails,
+      
+      // Legacy web results
       webSources,
       handleWebSearch,
       webScrapedSources,
       handleWebScrape,
-      webRefreshDetails,
+      
       costEstimate,
       phase2ExecutionMode,
       phase2SubTaskCount,

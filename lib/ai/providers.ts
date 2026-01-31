@@ -379,14 +379,19 @@ function extractUsage(event: SSEEvent): {
   return null;
 }
 
-function isODAIPhaseEvent(type: ODAIEventType): boolean {
+function isODAIPhaseEvent(type: string): boolean {
   return [
     "phase.start",
     "phase.progress",
     "phase.complete",
     "model.active",
     "model.complete",
-    "web.search",
+    "web.search.phase1",
+    "web.scrape.phase1",
+    "web.search.phase4",
+    "web.scrape.phase4",
+    "web.search", // Legacy support
+    "web.scrape", // Legacy support
     "cost.estimate",
     "cost.summary",
     "budget.confirmation_required",

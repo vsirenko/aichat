@@ -226,6 +226,10 @@ function ChatInner({
     handlePhaseComplete: odaiContext.handlePhaseComplete,
     handleModelActive: odaiContext.handleModelActive,
     handleModelComplete: odaiContext.handleModelComplete,
+    handleWebSearchPhase1: odaiContext.handleWebSearchPhase1,
+    handleWebScrapePhase1: odaiContext.handleWebScrapePhase1,
+    handleWebSearchPhase4: odaiContext.handleWebSearchPhase4,
+    handleWebScrapePhase4: odaiContext.handleWebScrapePhase4,
     handleWebSearch: odaiContext.handleWebSearch,
     handleWebScrape: odaiContext.handleWebScrape,
     setCostEstimate: odaiContext.setCostEstimate,
@@ -241,6 +245,10 @@ function ChatInner({
       handlePhaseComplete: odaiContext.handlePhaseComplete,
       handleModelActive: odaiContext.handleModelActive,
       handleModelComplete: odaiContext.handleModelComplete,
+      handleWebSearchPhase1: odaiContext.handleWebSearchPhase1,
+      handleWebScrapePhase1: odaiContext.handleWebScrapePhase1,
+      handleWebSearchPhase4: odaiContext.handleWebSearchPhase4,
+      handleWebScrapePhase4: odaiContext.handleWebScrapePhase4,
       handleWebSearch: odaiContext.handleWebSearch,
       handleWebScrape: odaiContext.handleWebScrape,
       setCostEstimate: odaiContext.setCostEstimate,
@@ -314,12 +322,28 @@ function ChatInner({
               console.log(`[ODAI SSE] Model COMPLETE: ${eventData.model_id} - Status: ${eventData.status}, Duration: ${(eventData.duration_ms / 1000).toFixed(2)}s`);
               handlersRef.current.handleModelComplete(eventData);
               break;
+            case "web.search.phase1":
+              console.log(`[ODAI SSE] Phase 1 Web Search: ${eventData.action}`, eventData.sources_count ? `${eventData.sources_count} sources` : "");
+              handlersRef.current.handleWebSearchPhase1(eventData);
+              break;
+            case "web.scrape.phase1":
+              console.log(`[ODAI SSE] Phase 1 Web Scrape: ${eventData.action}`, eventData.urls_scraped ? `${eventData.urls_scraped.length} URLs` : "");
+              handlersRef.current.handleWebScrapePhase1(eventData);
+              break;
+            case "web.search.phase4":
+              console.log(`[ODAI SSE] Phase 4 Web Search: ${eventData.action}`, eventData.sub_task_index !== null ? `sub-task ${eventData.sub_task_index}` : "single", eventData.sources_count ? `${eventData.sources_count} sources` : "");
+              handlersRef.current.handleWebSearchPhase4(eventData);
+              break;
+            case "web.scrape.phase4":
+              console.log(`[ODAI SSE] Phase 4 Web Scrape: ${eventData.action}`, eventData.sub_task_index !== null ? `sub-task ${eventData.sub_task_index}` : "single", eventData.urls_scraped ? `${eventData.urls_scraped.length} URLs` : "");
+              handlersRef.current.handleWebScrapePhase4(eventData);
+              break;
             case "web.search":
-              console.log(`[ODAI SSE] Web Search: ${eventData.action}`, eventData.sources_count ? `${eventData.sources_count} sources` : "");
+              console.log(`[ODAI SSE] Legacy Web Search: ${eventData.action}`, eventData.sources_count ? `${eventData.sources_count} sources` : "");
               handlersRef.current.handleWebSearch(eventData);
               break;
             case "web.scrape":
-              console.log(`[ODAI SSE] Web Scrape: ${eventData.action}`, eventData.urls_scraped ? `${eventData.urls_scraped.length} URLs` : "");
+              console.log(`[ODAI SSE] Legacy Web Scrape: ${eventData.action}`, eventData.urls_scraped ? `${eventData.urls_scraped.length} URLs` : "");
               handlersRef.current.handleWebScrape(eventData);
               break;
             case "cost.estimate":

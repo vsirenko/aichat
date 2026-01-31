@@ -166,7 +166,7 @@ function PhaseIndicator({ phase, onClick, isExpanded }: PhaseIndicatorProps) {
 }
 
 function PhaseProgressPanelContent() {
-  const { phases, models, webSources, webScrapedSources, webRefreshDetails, errorEvents } = useODAIContext();
+  const { phases, models, webSources, webScrapedSources, webRefreshDetails, errorEvents, phase1WebSources, phase1WebScrapedSources, phase4WebResults } = useODAIContext();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [selectedPhaseForModal, setSelectedPhaseForModal] =
     useState<PhaseState | null>(null);
@@ -339,6 +339,56 @@ function PhaseProgressPanelContent() {
                 <WebRefreshDisplay details={webRefreshDetails} />
               )}
 
+              {/* Phase 4 Web Results (per sub-task) */}
+              {phase4WebResults.size > 0 && (
+                <div className="space-y-4">
+                  {Array.from(phase4WebResults.entries()).map(([subTaskKey, results]) => {
+                    const totalSources = results.sources.length + results.scrapedSources.length;
+                    if (totalSources === 0) return null;
+                    
+                    return (
+                      <div key={subTaskKey} className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                        <h3 className="font-semibold text-sm">Web Search</h3>
+                        <p className="text-muted-foreground text-xs">
+                          {totalSources} {totalSources === 1 ? 'source' : 'sources'} found during pre-analysis
+                        </p>
+                        <div className="space-y-2">
+                          {results.sources.map((source, i) => (
+                            <a
+                              key={`search-${i}`}
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded border bg-background p-2 text-xs transition-colors hover:border-[#3B43FE]/50 dark:hover:border-[#D6FFA6]/50"
+                            >
+                              <div className="font-medium text-foreground">{source.title}</div>
+                              <div className="mt-1 text-muted-foreground truncate">{source.url}</div>
+                            </a>
+                          ))}
+                          {results.scrapedSources.map((source, i) => (
+                            <a
+                              key={`scrape-${i}`}
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded border bg-background p-2 text-xs transition-colors hover:border-[#3B43FE]/50 dark:hover:border-[#D6FFA6]/50"
+                            >
+                              <div className="font-medium text-foreground">{source.title}</div>
+                              <div className="mt-1 text-muted-foreground truncate">{source.url}</div>
+                              {source.sub_links !== undefined && source.sub_links > 0 && (
+                                <div className="mt-1 text-muted-foreground text-[10px]">
+                                  +{source.sub_links} sub-links scraped
+                                </div>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Wave Execution */}
               <WaveProgressDisplay models={models} />
 
@@ -355,6 +405,8 @@ function PhaseProgressPanelContent() {
         }}
         open={selectedPhaseForModal !== null}
         phase={selectedPhaseForModal}
+        phase1WebSources={phase1WebSources}
+        phase1WebScrapedSources={phase1WebScrapedSources}
       />
     </>
   );

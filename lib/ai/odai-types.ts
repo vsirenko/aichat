@@ -7,8 +7,10 @@ export type ODAIEventType =
   | "phase.complete"
   | "model.active"
   | "model.complete"
-  | "web.search"
-  | "web.scrape"
+  | "web.search.phase1"
+  | "web.scrape.phase1"
+  | "web.search.phase4"
+  | "web.scrape.phase4"
   | "cost.estimate"
   | "cost.summary"
   | "budget.confirmation_required"
@@ -22,8 +24,10 @@ export type ODAIPhaseEventType =
   | "phase.complete"
   | "model.active"
   | "model.complete"
-  | "web.search"
-  | "web.scrape"
+  | "web.search.phase1"
+  | "web.scrape.phase1"
+  | "web.search.phase4"
+  | "web.scrape.phase4"
   | "cost.estimate"
   | "budget.confirmation_required";
 
@@ -161,6 +165,8 @@ export interface WebSearchEvent {
   result_urls?: string[];
   depth_exploration_used?: boolean;
   depth_exploration_result_urls?: string[];
+  sub_task_index?: number | null;
+  sub_task_id?: string | null;
   timestamp: string;
 }
 
@@ -172,6 +178,8 @@ export interface WebScrapeEvent {
   }>;
   urls_scraped?: string[];
   sub_links_scraped?: number;
+  sub_task_index?: number | null;
+  sub_task_id?: string | null;
   timestamp: string;
 }
 
@@ -287,8 +295,10 @@ export type ODAIStreamAnnotation =
   | { type: "odai-phase.complete"; data: PhaseCompleteEvent }
   | { type: "odai-model.active"; data: ModelActiveEvent }
   | { type: "odai-model.complete"; data: ModelCompleteEvent }
-  | { type: "odai-web.search"; data: WebSearchEvent }
-  | { type: "odai-web.scrape"; data: WebScrapeEvent }
+  | { type: "odai-web.search.phase1"; data: WebSearchEvent }
+  | { type: "odai-web.scrape.phase1"; data: WebScrapeEvent }
+  | { type: "odai-web.search.phase4"; data: WebSearchEvent }
+  | { type: "odai-web.scrape.phase4"; data: WebScrapeEvent }
   | { type: "odai-cost.estimate"; data: CostEstimateEvent }
   | {
       type: "odai-budget.confirmation_required";

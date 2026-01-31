@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { PhaseState } from "@/lib/types";
+import type { PhaseState, WebSource, WebScrapedSource } from "@/lib/types";
 import type { PhaseMetrics } from "@/lib/ai/odai-types";
 import { cn } from "@/lib/utils";
 import { 
@@ -28,12 +28,16 @@ interface PhaseDetailModalProps {
   phase: PhaseState | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  phase1WebSources?: WebSource[];
+  phase1WebScrapedSources?: WebScrapedSource[];
 }
 
 function PurePhaseDetailModal({
   phase,
   open,
   onOpenChange,
+  phase1WebSources,
+  phase1WebScrapedSources,
 }: PhaseDetailModalProps) {
   if (!phase) return null;
 
@@ -68,7 +72,11 @@ function PurePhaseDetailModal({
             <SafetyPhaseDetails details={phase.details} />
           )}
           {phase.phase === "pre_analysis" && (
-            <PreAnalysisPhaseDetails details={phase.details} />
+            <PreAnalysisPhaseDetails 
+              details={phase.details} 
+              webSources={phase1WebSources}
+              webScrapedSources={phase1WebScrapedSources}
+            />
           )}
           {phase.phase === "budget_allocation" && (
             <BudgetPhaseDetails details={phase.details} />
@@ -161,8 +169,12 @@ function SafetyPhaseDetails({ details }: { details?: Record<string, unknown> }) 
 
 function PreAnalysisPhaseDetails({
   details,
+  webSources,
+  webScrapedSources,
 }: {
   details?: Record<string, unknown>;
+  webSources?: WebSource[];
+  webScrapedSources?: WebScrapedSource[];
 }) {
   if (!details) return null;
 
@@ -177,6 +189,9 @@ function PreAnalysisPhaseDetails({
   const secondaryDomains = getSecondaryDomains(domain);
   const urlsExtracted = (extraction?.urls_extracted as number) ?? (extraction?.urls as number) ?? 0;
   const webSearchRequired = webSearch?.required as boolean | undefined;
+  
+  const hasWebResults = (webSources && webSources.length > 0) || (webScrapedSources && webScrapedSources.length > 0);
+  const totalSources = (webSources?.length || 0) + (webScrapedSources?.length || 0);
 
   return (
     <div className="space-y-4">
@@ -219,6 +234,47 @@ function PreAnalysisPhaseDetails({
               >
                 {formatDomain(domain)}
               </span>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Phase 1 Web Results */}
+      {hasWebResults && (
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+          <h3 className="font-semibold text-sm">Web Search</h3>
+          <p className="text-muted-foreground text-xs">
+            {totalSources} {totalSources === 1 ? 'source' : 'sources'} found during pre-analysis
+          </p>
+          <div className="space-y-2">
+            {webSources?.map((source, i) => (
+              <a
+                key={`search-${i}`}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded border bg-background p-2 text-xs transition-colors hover:border-[#3B43FE]/50 dark:hover:border-[#D6FFA6]/50"
+              >
+                <div className="font-medium text-foreground">{source.title}</div>
+                <div className="mt-1 text-muted-foreground truncate">{source.url}</div>
+              </a>
+            ))}
+            {webScrapedSources?.map((source, i) => (
+              <a
+                key={`scrape-${i}`}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded border bg-background p-2 text-xs transition-colors hover:border-[#3B43FE]/50 dark:hover:border-[#D6FFA6]/50"
+              >
+                <div className="font-medium text-foreground">{source.title}</div>
+                <div className="mt-1 text-muted-foreground truncate">{source.url}</div>
+                {source.sub_links !== undefined && source.sub_links > 0 && (
+                  <div className="mt-1 text-muted-foreground text-[10px]">
+                    +{source.sub_links} sub-links scraped
+                  </div>
+                )}
+              </a>
             ))}
           </div>
         </div>
