@@ -49,8 +49,10 @@ export function useODAIStream(options: UseODAIStreamOptions = {}) {
             options.onCostEstimate?.(annotation.data.estimated_cost_usd);
           }
 
+          // Handle phase-scoped web search events (Phase 1 and Phase 4)
           if (
-            annotation.type === "odai-web.search" &&
+            (annotation.type === "odai-web.search.phase1" ||
+              annotation.type === "odai-web.search.phase4") &&
             annotation.data.sources
           ) {
             newState.webSources = annotation.data.sources;

@@ -50,8 +50,13 @@ export function isModelCompleteEvent(
 
 export function isWebSearchEvent(
   annotation: ODAIStreamAnnotation
-): annotation is { type: "odai-web.search"; data: WebSearchEvent } {
-  return annotation.type === "odai-web.search";
+): annotation is 
+  | { type: "odai-web.search.phase1"; data: WebSearchEvent }
+  | { type: "odai-web.search.phase4"; data: WebSearchEvent } {
+  return (
+    annotation.type === "odai-web.search.phase1" ||
+    annotation.type === "odai-web.search.phase4"
+  );
 }
 
 export function isCostEstimateEvent(
